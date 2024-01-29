@@ -1,11 +1,15 @@
 defmodule Hexpds.DidGenerator do
   require Logger
-  alias :libsecp256k1, as: Secp256k1
-  alias :base64, as: Base64
-  alias :cbor, as: CBOR
+  alias :crypto, as: Crypto
+  alias ExSecp256k1, as: Secp256k1
 
-  def generate_private_key() do
-    # Generate private key using libsecp256k1 or ex_crypto
+  def generate_private_key(), do: Crypto.strong_rand_bytes(32)
+
+  def get_public_key(privkey) when is_binary(privkey) and byte_size(privkey) == 32 do
+    case(Secp256k1.create_public_key(privkey)) do
+      {:ok, pubkey} -> pubkey
+      {:error, error} -> {:error, error}
+    end
   end
 
   def create_did_web_pubkey(pubkey) do
@@ -18,6 +22,7 @@ defmodule Hexpds.DidGenerator do
 
   def publish_to_plc(signed_genesis, plc_url) do
     # Publish the signed genesis to PLC using HTTPoison or Tesla
+    {:ok, signed_genesis}
   end
 
   def generate_did() do
