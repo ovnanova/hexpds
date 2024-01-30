@@ -5,7 +5,7 @@ defmodule Hexpds.Tid do
   defstruct [:timestamp, :clock_id]
   @b32_charset "234567abcdefghijklmnopqrstuvwxyz"
 
-  @spec from_string(String.t()) :: {:ok, t} | {:error, String.t()}
+  @spec from_string(String.t()) :: t() | {:error, String.t()}
   def from_string(str) when is_binary(str) and byte_size(str) == 13 do
     try do
     timestamp = str
@@ -42,7 +42,7 @@ defmodule Hexpds.Tid do
     for i <- Enum.to_list(0..12) do
       @b32_charset
       |> String.graphemes()
-      |> Enum.at(tid_int >>> (60 - i * 5) &&& 31)
+      |> Enum.at(tid_int >>> (60 - i * 5) &&& 31)  # I'm not really sure what this does I just copied Retr0id
     end
     |> Enum.join
   end
