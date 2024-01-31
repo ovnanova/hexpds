@@ -40,9 +40,11 @@ defmodule Hexpds.Tid do
     The result is a 13-character Base32 encoded string.
 
     - Each iteration shifts `tid_int` right by a decreasing number of bits.
-    - tid_int is 65-bits long, but the 65th bit is always 0.
-    - The shift starts with 60 bits, decreasing by 5 bits with each iteration.
-    - This progressively shifts the next 5-bit segment of `tid_int` into the rightmost position.
+    - `tid_int` in the atproto spec is a 64-bit integer.
+    - Since we are operating in 5-bit chunks, we round the bits up to the nearest multiple of 5 (0..12 * 5 bits = 65 bits).
+    - This makes `tid_int` a 65-bit integer in this context. The final bit is always 0.
+    - We subtract 5 to prevent `tid_int` from being off, so the shift starts with 60 bits (65-5).
+    - `tid_int` decreases by 5 bits with each iteration. This progressively shifts the next 5-bit segment of `tid_int` into the rightmost position.
 
     - `&&& 31` isolates the 5 rightmost bits of the shifted `tid_int`.
     - Since 31 in binary is 11111, the AND operation masks all but the 5 least significant bits.
