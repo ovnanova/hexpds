@@ -8,23 +8,22 @@ defmodule Hexpds.Tid do
   @spec from_string(String.t()) :: t() | {:error, String.t()}
   def from_string(str) when is_binary(str) and byte_size(str) == 13 do
     try do
-    timestamp = str
-                |> String.graphemes()
-                |> Enum.with_index()
-                |> Enum.reduce(0, fn {char, idx}, acc ->
-                     b32_index = Enum.find_index(String.graphemes(@b32_charset), fn c -> c == char end)
-                     shift_amount = (12 - idx) * 5
-                     acc ||| (b32_index <<< shift_amount)
-                   end)
-                <<< 10
+      timestamp = str
+                  |> String.graphemes()
+                  |> Enum.with_index()
+                  |> Enum.reduce(0, fn {char, idx}, acc ->
+                       b32_index = Enum.find_index(@b32_charset, fn c -> c == char end)
+                       shift_amount = (12 - idx) * 5
+                       acc ||| (b32_index <<< shift_amount)
+                     end)
+                  <<< 10
 
-    clock_id = str
-               |> String.graphemes()
-               |> Enum.at(12)
-               |> String.at(0)
-               |> String.to_integer(36)
+      clock_id = str
+                 |> String.graphemes()
+                 |> Enum.at(12)
+                 |> String.to_integer(36)
 
-    %__MODULE__{timestamp: timestamp, clock_id: clock_id}
+      %__MODULE__{timestamp: timestamp, clock_id: clock_id}
     rescue
       _ -> {:error, "Invalid TID"}
     end
