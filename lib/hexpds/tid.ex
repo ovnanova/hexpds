@@ -21,7 +21,7 @@ defmodule Hexpds.Tid do
               {timestamp_acc, clock_id_acc <<< 5 ||| (pos &&& 0x1F)}
 
             _ ->
-              {:error, "Invalid TID"}
+              raise "Invalid TID"
           end
         end)
 
