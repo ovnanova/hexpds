@@ -8,24 +8,34 @@ defmodule Hexpds.Tid do
   @spec from_string(String.t()) :: t() | {:error, String.t()}
   def from_string(str) when is_binary(str) and byte_size(str) == 13 do
     try do
-      timestamp = str
-                  |> String.graphemes()
-                  |> Enum.with_index()
-                  |> Enum.reduce(0, fn {char, idx}, acc ->
-                       b32_index = Enum.find_index(@b32_charset, fn c -> c == char end)
-                       shift_amount = (12 - idx) * 5
-                       acc ||| (b32_index <<< shift_amount)
-                     end)
-                  <<< 10
+      {timestamp, clock_id} =
+        str
+        |> String.graphemes()
+        |> Enum.with_index()
+        |> Enum.reduce({0, 0}, fn {char, index}, {timestamp_acc, clock_id_acc} ->
+          case {index, find_index(@b32_charset, char)} do
+            {i, pos} when i < 11 ->
+              {timestamp_acc <<< 5 ||| (pos &&& 0x1F), clock_id_acc}
 
-      clock_id = str
-                 |> String.graphemes()
-                 |> Enum.at(12)
-                 |> String.to_integer(36)
+            {i, pos} when i >= 11 ->
+              {timestamp_acc, clock_id_acc <<< 5 ||| (pos &&& 0x1F)}
+
+            _ ->
+              {:error, "Invalid TID"}
+          end
+        end)
 
       %__MODULE__{timestamp: timestamp, clock_id: clock_id}
     rescue
       _ -> {:error, "Invalid TID"}
+    end
+  end
+
+  # Helper function to find index of a character in a string
+  defp find_index(string, char) do
+    case :binary.match(string, char) do
+      {index, 1} -> index
+      _ -> raise "No such character in string"
     end
   end
 
@@ -62,7 +72,7 @@ defmodule Hexpds.Tid do
       |> String.graphemes()
       |> Enum.at(tid_int >>> (60 - i * 5) &&& 31)
     end
-    |> Enum.join
+    |> Enum.join()
   end
 
   @doc """
