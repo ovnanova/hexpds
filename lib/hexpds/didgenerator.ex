@@ -13,7 +13,7 @@ defmodule Hexpds.DidGenerator do
     end
   end
 
-  def create_did_web_pubkey(pubkey) do
+  def create_public_did_key(pubkey) do
     # Convert public key to the required format and encode
   end
 
