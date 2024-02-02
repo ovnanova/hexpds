@@ -29,6 +29,7 @@ defmodule Hexpds.MixProject do
       {:ex_doc, "~> 0.28.0", only: :dev, runtime: false},
       {:ex_secp256k1, "~> 0.7.2"},
       {:multibase, "~> 0.0.1"},
+      {:ex_multihash, "~> 2.0.0"},
     ]
   end
 end
