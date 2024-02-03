@@ -18,8 +18,11 @@ defmodule HexpdsDidGeneratorTest do
   end
 
   test "derives correct did:key" do
-    for {privkey, expected_did} <- test_cases() do
-      assert Hexpds.DidGenerator.create_public_did_key(privkey) == expected_did
+    for {privkey_hex, expected_did} <- test_cases() do
+      assert privkey_hex
+             |> Base.decode16!(case: :lower)
+             |> Hexpds.DidGenerator.get_public_key()
+             |> Hexpds.DidGenerator.create_public_did_key() == expected_did
     end
   end
 end
