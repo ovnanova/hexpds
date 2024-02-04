@@ -2,6 +2,8 @@ defmodule Hexpds.DidGenerator do
   require Logger
   alias :crypto, as: Crypto
   alias Hexpds.K256, as: K256
+  alias Bitcoinex, as: Bitcoin
+  alias Bitcoin.Secp256k1, as: Secp256k1
 
   def generate_private_key(), do: Crypto.strong_rand_bytes(32)
 
@@ -9,12 +11,25 @@ defmodule Hexpds.DidGenerator do
   def get_public_key(privkey) when is_binary(privkey) and byte_size(privkey) == 32 do
     case(K256.create_public_key(privkey)) do
       {:ok, pubkey} -> pubkey
-      _ -> {:error, "Invalid private key"}
+      _ -> raise "Error generating public key"
     end
   end
 
-  def create_did_web_pubkey(pubkey) do
-    # Convert public key to the required format and encode
+  @spec multicodec_encode(binary(), :"secp256k1-pub") :: <<_::16, _::_*8>>
+  def multicodec_encode(pubkey, :"secp256k1-pub") do
+    <<0xE7, 0x01, pubkey::binary>>
+  end
+
+  @spec create_public_did_key(binary()) :: String.t()
+  def create_public_did_key(pubkey) do
+    "did:key:" <>
+      (case Secp256k1.Point.parse_public_key(pubkey) do
+         {:ok, point} -> point
+         _ -> raise "Error parsing public key"
+       end
+       |> Secp256k1.Point.sec()
+       |> multicodec_encode(:"secp256k1-pub")
+       |> Multibase.encode!(:base58_btc))
   end
 
   def sign_genesis(genesis, privkey) do
