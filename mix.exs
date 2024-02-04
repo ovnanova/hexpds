@@ -27,8 +27,6 @@ defmodule Hexpds.MixProject do
       {:cbor, "~> 1.0.0"},
       {:jason, "~> 1.4"},
       {:ex_doc, "~> 0.28.0", only: :dev, runtime: false},
-      {:bitcoinex, "~> 0.1.7"},
-      {:ex_secp256k1, "~> 0.7.2"},
       {:multibase, "~> 0.0.1"},
       {:ex_multihash, "~> 2.0.0"},
       {:rustler, "~> 0.30.0"},

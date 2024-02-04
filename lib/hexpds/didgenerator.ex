@@ -2,8 +2,6 @@ defmodule Hexpds.DidGenerator do
   require Logger
   alias :crypto, as: Crypto
   alias Hexpds.K256, as: K256
-  alias Bitcoinex, as: Bitcoin
-  alias Bitcoin.Secp256k1, as: Secp256k1
 
   def generate_private_key(), do: Crypto.strong_rand_bytes(32)
 
@@ -23,11 +21,11 @@ defmodule Hexpds.DidGenerator do
   @spec create_public_did_key(binary()) :: String.t()
   def create_public_did_key(pubkey) do
     "did:key:" <>
-      (case Secp256k1.Point.parse_public_key(pubkey) do
-         {:ok, point} -> point
-         _ -> raise "Error parsing public key"
+      (case pubkey |> K256.compress_public_key() do
+         {:ok, pubkey} -> pubkey
+         _ -> raise "Error compressing public key"
        end
-       |> Secp256k1.Point.sec()
+       |> Base.decode16!(case: :lower)
        |> multicodec_encode(:"secp256k1-pub")
        |> Multibase.encode!(:base58_btc))
   end
