@@ -1,13 +1,13 @@
 defmodule Hexpds.DidGenerator do
   require Logger
   alias :crypto, as: Crypto
-  alias ExSecp256k1, as: Secp256k1
+  alias Hexpds.K256, as: K256
 
   def generate_private_key(), do: Crypto.strong_rand_bytes(32)
 
   @spec get_public_key(binary()) :: binary() | {:error, String.t()}
   def get_public_key(privkey) when is_binary(privkey) and byte_size(privkey) == 32 do
-    case(Secp256k1.create_public_key(privkey)) do
+    case(K256.create_public_key(privkey)) do
       {:ok, pubkey} -> pubkey
       _ -> {:error, "Invalid private key"}
     end
