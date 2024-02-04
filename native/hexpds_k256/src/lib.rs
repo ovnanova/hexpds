@@ -1,4 +1,4 @@
-use rustler::{Encoder, Env, Term};
+use rustler::{Binary, Encoder, Env, Term};
 use k256::{elliptic_curve::sec1::ToEncodedPoint, SecretKey};
 use hex;
 
@@ -10,8 +10,8 @@ mod atoms {
 }
 
 #[rustler::nif]
-fn create_public_key(env: Env, private_key: Binary) -> Term {
-    let private_key_bytes = private_key_binary.as_slice();
+fn create_public_key<'a>(env: Env<'a>, private_key: Binary<'a>) -> Term<'a> {
+    let private_key_bytes = private_key.as_slice();
 
     let secret_key = match SecretKey::from_be_bytes(&private_key_bytes) {
         Ok(key) => key,
