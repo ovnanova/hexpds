@@ -26,7 +26,12 @@ fn create_public_key<'a>(env: Env<'a>, private_key: Binary<'a>) -> Term<'a> {
 
 #[rustler::nif]
 fn compress_public_key<'a>(env: Env<'a>, public_key: Binary<'a>) -> Term<'a> {
-    let public_key = match PublicKey::from_sec1_bytes(public_key.as_slice()) {
+    let public_key = match hex::decode(public_key.as_slice()) {
+        Ok(key) => key,
+        Err(e) => return (atoms::error(), format!("Failed to decode hex string: {}", e)).encode(env),
+    };
+
+    let public_key = match PublicKey::from_sec1_bytes(&public_key) {
         Ok(key) => key,
         Err(e) => return (atoms::error(), format!("Failed to parse public key: {}", e)).encode(env),
     };
@@ -36,4 +41,3 @@ fn compress_public_key<'a>(env: Env<'a>, public_key: Binary<'a>) -> Term<'a> {
 }
 
 rustler::init!("Elixir.Hexpds.K256", [create_public_key, compress_public_key]);
-
