@@ -1,11 +1,11 @@
 [package]
-name = "hexpds_k256"
+name = "hexpds_k256_internal"
 version = "0.1.0"
 authors = [ "NetWatchInc" ]
 edition = "2021"
 
 [lib]
-name = "hexpds_k256"
+name = "hexpds_k256_internal"
 path = "src/lib.rs"
 crate-type = ["cdylib"]
 

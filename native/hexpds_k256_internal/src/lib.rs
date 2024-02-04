@@ -1,5 +1,10 @@
-use rustler::{Binary, Encoder, Env, Term};
-use k256::{elliptic_curve::sec1::ToEncodedPoint, PublicKey, SecretKey};
+use rustler::Binary;
+use rustler::Encoder;
+use rustler::Env;
+use rustler::Term;
+use k256::elliptic_curve::sec1::ToEncodedPoint;
+use k256::PublicKey;
+use k256::SecretKey;
 use hex;
 
 mod atoms {
@@ -40,5 +45,5 @@ fn compress_public_key<'a>(env: Env<'a>, public_key: Binary<'a>) -> Term<'a> {
     (atoms::ok(), compressed_key).encode(env)
 }
 
-rustler::init!("Elixir.Hexpds.K256", [create_public_key, compress_public_key]);
+rustler::init!("Elixir.Hexpds.K256_Internal", [create_public_key, compress_public_key]);
 

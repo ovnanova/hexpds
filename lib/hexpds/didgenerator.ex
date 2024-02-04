@@ -1,7 +1,7 @@
 defmodule Hexpds.DidGenerator do
   require Logger
   alias :crypto, as: Crypto
-  alias Hexpds.K256, as: K256
+  alias Hexpds.K256_Internal, as: K256
 
   def generate_private_key(), do: Crypto.strong_rand_bytes(32)
 
