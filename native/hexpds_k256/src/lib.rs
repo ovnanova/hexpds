@@ -10,11 +10,8 @@ mod atoms {
 }
 
 #[rustler::nif]
-fn create_public_key(env: Env, private_key: String) -> Term {
-    let private_key_bytes = match hex::decode(&private_key) {
-        Ok(bytes) => bytes,
-        Err(e) => return (atoms::error(), format!("Failed to decode hex string: {}", e)).encode(env),
-    };
+fn create_public_key(env: Env, private_key: Binary) -> Term {
+    let private_key_bytes = private_key_binary.as_slice();
 
     let secret_key = match SecretKey::from_be_bytes(&private_key_bytes) {
         Ok(key) => key,
