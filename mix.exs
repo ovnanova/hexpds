@@ -30,6 +30,9 @@ defmodule Hexpds.MixProject do
       {:bitcoinex, "~> 0.1.7"},
       {:ex_secp256k1, "~> 0.7.2"},
       {:multibase, "~> 0.0.1"},
+      {:ex_multihash, "~> 2.0.0"},
+      {:rustler, "~> 0.30.0"},
+      {:toml, "~> 0.7.0"}
     ]
   end
 end

@@ -1,0 +1,17 @@
+[package]
+name = "hexpds_k256"
+version = "0.1.0"
+authors = [ "NetWatchInc" ]
+edition = "2021"
+
+[lib]
+name = "hexpds_k256"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+atoms = "2.2.3"
+elliptic-curve = "0.13.8"
+hex = "0.4.3"
+k256 = "0.10.1"
+rustler = "0.30.0"

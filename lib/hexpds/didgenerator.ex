@@ -1,6 +1,7 @@
 defmodule Hexpds.DidGenerator do
   require Logger
   alias :crypto, as: Crypto
+  alias Hexpds.K256, as: K256
   alias Bitcoinex, as: Bitcoin
   alias Bitcoin.Secp256k1, as: Secp256k1
 
@@ -8,7 +9,7 @@ defmodule Hexpds.DidGenerator do
 
   @spec get_public_key(binary()) :: binary() | {:error, String.t()}
   def get_public_key(privkey) when is_binary(privkey) and byte_size(privkey) == 32 do
-    case ExSecp256k1.create_public_key(privkey) do
+    case(K256.create_public_key(privkey)) do
       {:ok, pubkey} -> pubkey
       _ -> raise "Error generating public key"
     end
