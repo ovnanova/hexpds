@@ -1,5 +1,5 @@
 use rustler::{Binary, Encoder, Env, Term};
-use k256::{elliptic_curve::sec1::ToEncodedPoint, SecretKey};
+use k256::{elliptic_curve::sec1::ToEncodedPoint, PublicKey, SecretKey};
 use hex;
 
 mod atoms {
@@ -11,9 +11,8 @@ mod atoms {
 
 #[rustler::nif]
 fn create_public_key<'a>(env: Env<'a>, private_key: Binary<'a>) -> Term<'a> {
-    let private_key_bytes = private_key.as_slice();
 
-    let secret_key = match SecretKey::from_be_bytes(&private_key_bytes) {
+    let secret_key = match SecretKey::from_slice(&private_key) {
         Ok(key) => key,
         Err(e) => return (atoms::error(), format!("Failed to create secret key: {}", e)).encode(env),
     };
@@ -25,5 +24,16 @@ fn create_public_key<'a>(env: Env<'a>, private_key: Binary<'a>) -> Term<'a> {
     (atoms::ok(), public_key_hex).encode(env)
 }
 
-rustler::init!("Elixir.Hexpds.K256", [create_public_key]);
+#[rustler::nif]
+fn compress_public_key<'a>(env: Env<'a>, public_key: Binary<'a>) -> Term<'a> {
+    let public_key = match PublicKey::from_sec1_bytes(public_key.as_slice()) {
+        Ok(key) => key,
+        Err(e) => return (atoms::error(), format!("Failed to parse public key: {}", e)).encode(env),
+    };
+
+    let compressed_key = public_key.to_encoded_point(true).as_bytes().to_vec();
+    (atoms::ok(), compressed_key).encode(env)
+}
+
+rustler::init!("Elixir.Hexpds.K256", [create_public_key, compress_public_key]);
 
