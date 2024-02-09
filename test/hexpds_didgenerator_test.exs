@@ -1,6 +1,7 @@
 defmodule HexpdsDidGeneratorTest do
   use ExUnit.Case
   doctest Hexpds.DidGenerator
+  alias Hexpds.K256, as: K256
 
   defp test_cases do
     %{
@@ -20,9 +21,9 @@ defmodule HexpdsDidGeneratorTest do
   test "derives correct did:key" do
     for {privkey_hex, expected_did} <- test_cases() do
       assert privkey_hex
-             |> Base.decode16!(case: :lower)
-             |> Hexpds.DidGenerator.get_public_key()
-             |> Hexpds.DidGenerator.create_public_did_key() == expected_did
+             |> K256.PrivateKey.from_hex()
+             |> K256.PrivateKey.to_pubkey()
+             |> K256.PublicKey.to_did_key() == expected_did
     end
   end
 end
