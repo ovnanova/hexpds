@@ -45,5 +45,5 @@ fn compress_public_key<'a>(env: Env<'a>, public_key: Binary<'a>) -> Term<'a> {
     (atoms::ok(), compressed_key).encode(env)
 }
 
-rustler::init!("Elixir.Hexpds.K256_Internal", [create_public_key, compress_public_key]);
+rustler::init!("Elixir.Hexpds.K256.Internal", [create_public_key, compress_public_key]);
 
