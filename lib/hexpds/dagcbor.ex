@@ -1,4 +1,4 @@
-defmodule Hexdps.DagCBOR do
+defmodule Hexpds.DagCBOR do
   defmodule Internal do
     use Rustler, otp_app: :hexpds, crate: "hexpds_dagcbor_internal"
       @spec encode_dag_cbor(binary()) :: {:ok, binary()} | {:error, String.t()}
