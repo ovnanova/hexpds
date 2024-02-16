@@ -1,4 +1,4 @@
-# NIF for Elixir.Hexpds.K256_Internal
+# NIF for Elixir.Hexpds.K256.Internal
 
 ## To build the NIF module:
 
@@ -7,7 +7,7 @@
 ## To load the NIF:
 
 ```elixir
-defmodule Hexpds.K256_Internal do
+defmodule Hexpds.K256.Internal do
   use Rustler, otp_app: :hexpds, crate: "hexpds_k256_internal"
 
   # When your NIF is loaded, it will override this function.

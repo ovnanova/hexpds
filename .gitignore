@@ -24,4 +24,4 @@ hexpds-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
-priv/native/libhexpds_k256.so
+*.so
