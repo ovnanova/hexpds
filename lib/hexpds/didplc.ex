@@ -5,8 +5,6 @@ defmodule Hexpds.DidPlc do
       :prev,
       :verificationMethods,
       :alsoKnownAs,
-      :did,
-      :sig,
       :services,
       type: "plc_operation"
     ]
@@ -16,8 +14,6 @@ defmodule Hexpds.DidPlc do
             prev: String.t() | nil,
             verificationMethods: VerificationMethods.t(),
             alsoKnownAs: [String.t()],
-            did: String.t(),
-            sig: String.t(),
             services: Services.t(),
             type: String.t()
           }
@@ -29,15 +25,44 @@ defmodule Hexpds.DidPlc do
 
     defmodule Services do
       @type t :: %__MODULE__{atproto_pds: AtprotoPds.t()}
+      @derive Jason.Encoder
       defstruct [:atproto_pds]
 
       defmodule AtprotoPds do
         @type t :: %__MODULE__{endpoint: String.t(), type: String.t()}
+        @derive Jason.Encoder
         defstruct [:endpoint, type: "AtprotoPersonalDataServer"]
       end
     end
+
+    def genesis(
+          %Hexpds.K256.PrivateKey{} = rotationkey,
+          %Hexpds.K256.PrivateKey{} = signingkey,
+          handle,
+          pds
+        ) do
+      %__MODULE__{
+        rotationKeys: [rotationkey],
+        prev: nil,
+        verificationMethods: %Operation.VerificationMethods{atproto: signingkey},
+        alsoKnownAs: ["at://#{handle}"],
+        services: %Services{atproto_pds: %Services.AtprotoPds{endpoint: "https://#{pds}"}}
+      }
+    end
+
+    def to_json(%__MODULE__{} = operation) do
+      encodekeys = fn k ->
+        k |> Hexpds.K256.PrivateKey.to_pubkey() |> Hexpds.K256.PublicKey.to_did_key()
+      end
+
+      Jason.encode!(%{
+        "type" => operation.type,
+        "rotationKeys" => Enum.map(operation.rotationKeys, encodekeys),
+        "prev" => operation.prev,
+        "verificationMethods" => %{atproto: encodekeys.(operation.verificationMethods.atproto)},
+        "alsoKnownAs" => operation.alsoKnownAs,
+        "services" => operation.services
+      })
+    end
   end
-
-
-
 end
