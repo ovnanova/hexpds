@@ -29,7 +29,7 @@ defmodule Hexpds.MixProject do
       {:ex_doc, "~> 0.28.0", only: :dev, runtime: false},
       {:multibase, "~> 0.0.1"},
       {:ex_multihash, "~> 2.0.0"},
-      {:rustler, "~> 0.30.0"},
+      {:rustler, "~> 0.31.0"},
       {:toml, "~> 0.7.0"}
     ]
   end
