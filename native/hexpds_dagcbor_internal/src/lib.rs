@@ -13,10 +13,10 @@ mod atoms {
 
 #[rustler::nif]
 fn encode_dag_cbor(env: Env, json: String) -> Term {
-    let parsed_json = match from_str(&json) {
-        Ok(json) => json,
-        Err(e) => return (atoms::error(), format!("Failed to parse JSON: {}", e)).encode(env),
-    };
+        let parsed_json: serde_json::Value = match from_str(&json) {
+            Ok(json) => json,
+            Err(e) => return (atoms::error(), format!("Failed to parse JSON: {}", e)).encode(env),
+        };
 
     let cbor_data = match to_vec(&parsed_json) {
         Ok(data) => data,
