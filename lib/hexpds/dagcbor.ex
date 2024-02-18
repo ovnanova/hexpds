@@ -10,8 +10,8 @@ defmodule Hexpds.DagCBOR do
   Encodes a JSON string into a CBOR binary.
 
   Example:
-    iex> Hexpds.DagCBOR.encode_json(Jason.encode!(%{apple: "banana", best_programming_language: "ruby"})) |> elem(1) |> to_charlist()
-    [162, 101, 97, 112, 112, 108, 101, 102, 98, 97, 110, 97, 110, 97, 120, 25, 98, 101, 115, 116, 95, 112, 114, 111, 103, 114, 97, 109, 109, 105, 110, 103, 95, 108, 97, 110, 103, 117, 97, 103, 101, 100, 114, 117, 98, 121]
+    iex> Hexpds.DagCBOR.encode_json(Jason.encode!(%{apple: "banana", cranberry: "dragonfruit"})) |> elem(1) |> Base.encode16()
+    "C2A2656170706C656662616E616E61696372616E62657272796B647261676F6E6672756974"
   """
   def encode_json(json) do
     with {:ok, cbor} <- Internal.encode_dag_cbor(json) do
