@@ -12,8 +12,17 @@ defmodule Hexpds.K256 do
     @spec from_hex(String.t()) :: Hexpds.K256.PrivateKey.t()
     def from_hex(hex), do: from_binary(Base.decode16!(hex, case: :lower))
 
+    @spec to_hex(Hexpds.K256.PrivateKey.t()) :: String.t()
+    def to_hex(%__MODULE__{} = privkey), do: Base.encode16(privkey.privkey, case: :lower)
+
     @spec to_pubkey(Hexpds.K256.PrivateKey.t()) :: Hexpds.K256.PublicKey.t()
     def to_pubkey(%__MODULE__{} = privkey), do: Hexpds.K256.PublicKey.create(privkey)
+
+    @spec sign(Hexpds.K256.PrivateKey.t(), binary()) :: {:error, binary()} | {:ok, binary()}
+    def sign(%__MODULE__{privkey: privkey}, message) do
+      with {:ok, sig} <- Hexpds.K256.Internal.sign_message(privkey, message),
+           do: {:ok, to_string(sig)}
+    end
   end
 
   defmodule PublicKey do
@@ -56,5 +65,7 @@ defmodule Hexpds.K256 do
       def create_public_key(_private_key), do: :erlang.nif_error(:nif_not_loaded)
       @spec compress_public_key(binary()) :: {:ok, binary()} | {:error, String.t()}
       def compress_public_key(_public_key), do: :erlang.nif_error(:nif_not_loaded)
+      @spec sign_message(binary(), binary()) :: {:ok, binary()} | {:error, String.t()}
+      def sign_message(_private_key, _message), do: :erlang.nif_error(:nif_not_loaded)
   end
 end
