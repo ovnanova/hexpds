@@ -64,5 +64,29 @@ defmodule Hexpds.DidPlc do
         "services" => operation.services
       })
     end
+
+    @spec sign(Hexpds.DidPlc.Operation.t(), Hexpds.K256.PrivateKey.t()) ::
+            {:ok, binary()} | {:error, String.t()}
+    def sign(%__MODULE__{} = operation, %Hexpds.K256.PrivateKey{} = privkey) do
+      with {:ok, cbor} <-
+             operation
+             |> to_json()
+             |> Hexpds.DagCBOR.encode_json(),
+           do:
+             {:ok,
+              privkey
+              |> Hexpds.K256.PrivateKey.sign(cbor)
+              |> Base.url_encode64()
+              |> String.replace("=", "")}
+    end
+
+    def add_sig(%__MODULE__{} = operation, %Hexpds.K256.PrivateKey{} = privkey) do
+      with {:ok, sig} <- sign(operation, privkey) do
+        operation
+        |> to_json
+        |> Jason.decode!()
+        |> Map.put("sig", sig)
+      end
+    end
   end
 end
