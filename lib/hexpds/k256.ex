@@ -33,7 +33,7 @@ defmodule Hexpds.K256 do
     """
     def sign(%__MODULE__{privkey: privkey}, message) when is_binary(message) do
       with {:ok, sig_hex} <- Hexpds.K256.Internal.sign_message(privkey, message),
-           {:ok, sig} <- Base.decode64(sig_hex),
+           {:ok, sig} <- Base.decode16(sig_hex, case: :lower),
            do: sig
     end
 
