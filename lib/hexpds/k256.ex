@@ -32,9 +32,7 @@ defmodule Hexpds.K256 do
     Signs a binary message with a Secp256k1 private key. Returns a binary signature.
     """
     def sign(%__MODULE__{privkey: privkey}, message) when is_binary(message) do
-      with {:ok, sig_hex} <- Hexpds.K256.Internal.sign_message(privkey, message),
-           {:ok, sig} <- Base.decode16(sig_hex, case: :lower),
-           do: sig
+      with {:ok, sig} <- Hexpds.K256.Internal.sign_message(privkey, message), do: to_string(sig)
     end
 
     @spec sign!(t(), binary()) :: binary()

@@ -10,7 +10,7 @@ defmodule Hexpds.DidGenerator do
              |> Jason.encode(),
            {:ok, signed_genesis_cbor} <-
              signed_genesis_json
-             |> Hexpds.DagCBOR.encode_json() do
+             |> Hexpds.DagCBOR.encode() do
         :crypto.hash(:sha256, signed_genesis_cbor)
         |> Base.encode32(case: :lower)
         |> String.slice(0..23)
