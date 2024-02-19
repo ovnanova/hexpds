@@ -72,12 +72,12 @@ defmodule Hexpds.DidPlc do
              operation
              |> to_json()
              |> Hexpds.DagCBOR.encode_json(),
-           {:ok, sig} <- Hexpds.K256.PrivateKey.sign(privkey, cbor) do
-        {:ok,
-         sig
-         |> Base.url_encode64()
-         |> String.replace("=", "")}
-      end
+           do:
+             {:ok,
+              privkey
+              |> Hexpds.K256.PrivateKey.sign(cbor)
+              |> Base.url_encode64()
+              |> String.replace("=", "")}
     end
 
     def add_sig(%__MODULE__{} = operation, %Hexpds.K256.PrivateKey{} = privkey) do
