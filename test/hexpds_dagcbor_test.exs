@@ -6,9 +6,9 @@ defmodule HexpdsDagcborTest do
     [
       "test text",
       ["test text"],
-      %{string: "test text"},
-      %{map: %{string: "test text"}},
-      %{list: ["text"]},
+      %{"string" => "test text"},
+      %{"map" => %{"string" => "test text"}},
+      %{"list" => ["text"]},
     ]
   end
 
