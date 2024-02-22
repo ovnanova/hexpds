@@ -21,6 +21,21 @@ mod atoms {
 
 pub fn json_to_ipld(val: Value) -> Ipld {
     match val {
+        Value::Object(obj) => {
+            let mut result = BTreeMap::new();
+            for (k, v) in obj {
+                if k == "cid" {
+                    if let Value::String(ref cid_str) = v {
+                        if let Ok(cid) = Cid::from_str(&cid_str) {
+                            result.insert(k, Ipld::Link(cid));
+                            continue;
+                        }
+                    }
+                }
+                result.insert(k, json_to_ipld(v));
+            }
+            Ipld::Map(result)
+        },
         Value::Null => Ipld::Null,
         Value::Bool(b) => Ipld::Bool(b),
         Value::String(s) => match Cid::from_str(&s) {
@@ -41,12 +56,12 @@ pub fn json_to_ipld(val: Value) -> Ipld {
             }
         },
         Value::Array(l) => Ipld::List(l.into_iter().map(json_to_ipld).collect()),
-        Value::Object(m) => {
-            let map: BTreeMap<String, Ipld> = m.into_iter().map(|(k, v)| {
-                (k, json_to_ipld(v))
-            }).collect();
-            Ipld::Map(map)
-        },
+        // Value::Object(m) => {
+        //     let map: BTreeMap<String, Ipld> = m.into_iter().map(|(k, v)| {
+        //         (k, json_to_ipld(v))
+        //     }).collect();
+        //     Ipld::Map(map)
+        // },
     }
 }
 
