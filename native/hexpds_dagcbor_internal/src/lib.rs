@@ -19,6 +19,8 @@ mod atoms {
     }
 }
 
+const DAG_CBOR_CID_TAG: u64 = 42;
+
 pub fn json_to_ipld(val: Value) -> Ipld {
     match val {
         Value::Object(obj) => {
@@ -27,7 +29,9 @@ pub fn json_to_ipld(val: Value) -> Ipld {
                 if k == "cid" {
                     if let Value::String(ref cid_str) = v {
                         if let Ok(cid) = Cid::from_str(&cid_str) {
-                            result.insert(k, Ipld::Link(cid));
+                            let mut tagged_cid_map = BTreeMap::new();
+                            tagged_cid_map.insert(DAG_CBOR_CID_TAG.to_string(), Ipld::Link(cid));
+                            result.insert(k, Ipld::Map(tagged_cid_map));
                             continue;
                         }
                     }
