@@ -23,23 +23,6 @@ const DAG_CBOR_CID_TAG: u64 = 42;
 
 pub fn json_to_ipld(val: Value) -> Ipld {
     match val {
-        Value::Object(obj) => {
-            let mut result = BTreeMap::new();
-            for (k, v) in obj {
-                if k == "cid" {
-                    if let Value::String(ref cid_str) = v {
-                        if let Ok(cid) = Cid::from_str(&cid_str) {
-                            let mut tagged_cid_map = BTreeMap::new();
-                            tagged_cid_map.insert(DAG_CBOR_CID_TAG.to_string(), Ipld::Link(cid));
-                            result.insert(k, Ipld::Map(tagged_cid_map));
-                            continue;
-                        }
-                    }
-                }
-                result.insert(k, json_to_ipld(v));
-            }
-            Ipld::Map(result)
-        },
         Value::Null => Ipld::Null,
         Value::Bool(b) => Ipld::Bool(b),
         Value::String(s) => match Cid::from_str(&s) {
@@ -60,12 +43,12 @@ pub fn json_to_ipld(val: Value) -> Ipld {
             }
         },
         Value::Array(l) => Ipld::List(l.into_iter().map(json_to_ipld).collect()),
-        // Value::Object(m) => {
-        //     let map: BTreeMap<String, Ipld> = m.into_iter().map(|(k, v)| {
-        //         (k, json_to_ipld(v))
-        //     }).collect();
-        //     Ipld::Map(map)
-        // },
+        Value::Object(m) => {
+            let map: BTreeMap<String, Ipld> = m.into_iter().map(|(k, v)| {
+                (k, json_to_ipld(v))
+            }).collect();
+            Ipld::Map(map)
+        },
     }
 }
 
@@ -76,7 +59,17 @@ fn encode_dag_cbor(env: Env, json: String) -> NifResult<Term> {
         Err(e) => return Ok((atoms::error(), format!("Failed to parse JSON: {}", e)).encode(env)),
     };
 
-    let ipld_data = json_to_ipld(parsed_json);
+    let mut ipld_data = json_to_ipld(parsed_json);
+
+    if let Ipld::Map(ref mut map) = ipld_data {
+        if let Some(Ipld::String(cid_str)) = map.get("cid") {
+            if let Ok(cid) = Cid::from_str(cid_str) {
+                let mut tagged_cid_map = BTreeMap::new();
+                tagged_cid_map.insert(DAG_CBOR_CID_TAG.to_string(), Ipld::Link(cid));
+                map.insert("cid".to_string(), Ipld::Map(tagged_cid_map));
+            }
+        }
+    }
 
     let encoded_dag_cbor = DagCborCodec.encode(&ipld_data);
 
