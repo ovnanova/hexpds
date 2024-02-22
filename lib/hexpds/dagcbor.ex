@@ -16,7 +16,7 @@ defmodule Hexpds.DagCBOR do
       iex> Hexpds.DagCBOR.encode_json(Jason.encode!(%{apple: "banana", cranberry: "dragonfruit"}))
       ...> |> elem(1)
       ...> |> Base.encode16()
-      "C2A2656170706C656662616E616E61696372616E62657272796B647261676F6E6672756974"
+      "A2656170706C656662616E616E61696372616E62657272796B647261676F6E6672756974"
 
   """
   def encode_json(json) do
