@@ -23,7 +23,10 @@ pub fn json_to_ipld(val: Value) -> Ipld {
     match val {
         Value::Null => Ipld::Null,
         Value::Bool(b) => Ipld::Bool(b),
-        Value::String(s) => Ipld::String(s),
+        Value::String(s) => match Cid::from_str(&s) {
+            Ok(cid) => Ipld::Link(cid),
+            Err(_) => Ipld::String(s),
+        },
         Value::Number(v) => {
             if let Some(f) = v.as_f64() {
                 if v.is_i64() {
@@ -39,15 +42,11 @@ pub fn json_to_ipld(val: Value) -> Ipld {
         },
         Value::Array(l) => Ipld::List(l.into_iter().map(json_to_ipld).collect()),
         Value::Object(m) => {
-            let map: BTreeMap<String, Ipld> = BTreeMap::from_iter(m.into_iter().map(|(k, v)| {
-                if k == "cid" && v.is_string() {
-                    (k, Ipld::Link(Cid::from_str(v.as_str().unwrap()).unwrap()))
-                } else {
-                    (k, json_to_ipld(v))
-                }
-            }));
+            let map: BTreeMap<String, Ipld> = m.into_iter().map(|(k, v)| {
+                (k, json_to_ipld(v))
+            }).collect();
             Ipld::Map(map)
-        }
+        },
     }
 }
 
