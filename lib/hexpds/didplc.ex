@@ -65,21 +65,23 @@ defmodule Hexpds.DidPlc do
       })
     end
 
-    @spec sign(Hexpds.DidPlc.Operation.t(), Hexpds.K256.PrivateKey.t()) ::
+    @spec sign(t(), Hexpds.K256.PrivateKey.t()) ::
             {:ok, binary()} | {:error, String.t()}
     def sign(%__MODULE__{} = operation, %Hexpds.K256.PrivateKey{} = privkey) do
       with {:ok, cbor} <-
              operation
              |> to_json()
-             |> Hexpds.DagCBOR.encode_json(),
+             |> Hexpds.DagCBOR.encode(),
            do:
              {:ok,
               privkey
-              |> Hexpds.K256.PrivateKey.sign(cbor)
+              |> Hexpds.K256.PrivateKey.sign(:crypto.hash(:sha256, cbor))
               |> Base.url_encode64()
               |> String.replace("=", "")}
     end
 
+    @spec add_sig(t(), Hexpds.K256.PrivateKey.t()) ::
+            {:error, binary()} | map()
     def add_sig(%__MODULE__{} = operation, %Hexpds.K256.PrivateKey{} = privkey) do
       with {:ok, sig} <- sign(operation, privkey) do
         operation

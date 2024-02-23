@@ -1,8 +1,35 @@
 defmodule Hexpds.Tid do
   import Bitwise
 
-  @type t :: %__MODULE__{timestamp: non_neg_integer(), clock_id: non_neg_integer()}
   defstruct [:timestamp, :clock_id]
+
+  @typedoc """
+    A TID is a 13-character string.
+    TID is short for "timestamp identifier," and the name is derived from the creation time of the record.
+
+    The characteristics of a TID are:
+
+    - 64-bit integer
+    - big-endian byte ordering
+    - encoded as base32-sortable. That is, encoded with characters 234567abcdefghijklmnopqrstuvwxyz, with no padding, yielding 13 ASCII characters.
+    - hyphens should not be included in a TID (unlike in previous iterations of the scheme)
+
+    The layout of the 64-bit integer is:
+
+    - The top bit is always 0
+    - The next 53 bits represent microseconds since the UNIX epoch. 53 bits is chosen as the maximum safe integer precision in a 64-bit floating point number, as used by Javascript.
+    - The final 10 bits are a random "clock identifier."
+
+    This struct holds the timestamp in microseconds since the UNIX epoch, and the clock_id, which is a random number in the range 0..1023.
+
+  """
+  @type t :: %__MODULE__{timestamp: unix_microseconds(), clock_id: non_neg_integer()}
+
+  @typedoc """
+  A number of microseconds since the UNIX epoch, as a 64-bit non-negative integer
+  """
+  @type unix_microseconds :: non_neg_integer()
+
   @b32_charset "234567abcdefghijklmnopqrstuvwxyz"
 
   @spec from_string(String.t()) :: t() | {:error, String.t()}
@@ -21,13 +48,13 @@ defmodule Hexpds.Tid do
               {timestamp_acc, clock_id_acc <<< 5 ||| (pos &&& 0x1F)}
 
             _ ->
-              raise "Invalid TID"
+              throw("Invalid TID")
           end
         end)
 
       %__MODULE__{timestamp: timestamp, clock_id: clock_id}
-    rescue
-      _ -> {:error, "Invalid TID"}
+    catch
+      :throw, e -> {:error, e}
     end
   end
 
