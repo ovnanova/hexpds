@@ -37,7 +37,8 @@ defmodule Hexpds.K256 do
     @doc """
     Converts a Secp256k1 private key to a hex-encoded string.
     """
-    def to_hex(%__MODULE__{privkey: privkey}) when is_valid_key(privkey), do: Base.encode16(privkey, case: :lower)
+    def to_hex(%__MODULE__{privkey: privkey}) when is_valid_key(privkey),
+      do: Base.encode16(privkey, case: :lower)
 
     @spec to_pubkey(t()) :: Hexpds.K256.PublicKey.t()
     def to_pubkey(%__MODULE__{} = privkey) when is_valid_key(privkey.privkey),
@@ -48,8 +49,11 @@ defmodule Hexpds.K256 do
     Signs a binary message with a Secp256k1 private key. Returns a binary signature.
     """
 
-    def sign(%__MODULE__{privkey: privkey}, message) when is_binary(message) and is_valid_key(privkey) do
-      with {:ok, sig} <- Hexpds.K256.Internal.sign_message(privkey, message), do: to_string(sig)
+    def sign(%__MODULE__{privkey: privkey}, message)
+        when is_binary(message) and is_valid_key(privkey) do
+      with {:ok, sig} <- Hexpds.K256.Internal.sign_message(privkey, message),
+           {:ok, sig_bytes} <- Base.decode16(sig, case: :lower),
+           do: sig_bytes
     end
 
     @spec sign!(t(), binary()) :: binary()

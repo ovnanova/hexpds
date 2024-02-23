@@ -14,7 +14,7 @@ defmodule HexpdsDagcborTest do
 
   test "cbor roundtrip" do
     for input <- test_cases() do
-      {:ok, cbor_encoded} = Hexpds.DagCBOR.encode_json(Jason.encode!(input))
+      {:ok, cbor_encoded} = Hexpds.DagCBOR.encode(Jason.encode!(input))
       {:ok, json_encoded} = Hexpds.DagCBOR.decode_json(cbor_encoded)
       assert input == Jason.decode!(json_encoded)
     end
