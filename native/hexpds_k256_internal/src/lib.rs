@@ -80,9 +80,9 @@ fn sign_message<'a>(env: Env<'a>, private_key: Binary<'a>, message: Binary<'a>) 
 
     let signature_bytes = signature_low_s.to_bytes();
 
-    let signature_hex = hex::encode(signature_bytes);
+    let signature_vec = signature_bytes.to_vec();
 
-    (atoms::ok(), signature_hex).encode(env)
+    (atoms::ok(), signature_vec).encode(env)
 }
 
 rustler::init!(
