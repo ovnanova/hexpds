@@ -7,21 +7,38 @@ defmodule Hexpds.K256 do
   """
   defmodule PrivateKey do
     defstruct [:privkey]
+
+    @typedoc """
+    A Secp256k1 private key. Contains the raw bytes of the key, and wraps the `k256` crate's `k256::SecretKey` type.
+    Should always be 32 bytes (256 bits) long. All operations on `Hexpds.K256.PrivateKey` are type-safe.
+    """
     @type t :: %__MODULE__{privkey: <<_::256>>}
 
     defguard is_valid_key(privkey) when is_binary(privkey) and byte_size(privkey) == 32
 
     @spec create() :: t()
+    @doc """
+    Generates a new Secp256k1 private key.
+    """
     def create(), do: %__MODULE__{privkey: :crypto.strong_rand_bytes(32)}
 
     @spec from_binary(binary()) :: t()
-    def from_binary(privkey), do: %__MODULE__{privkey: privkey}
+
+    @doc """
+    Wraps a Secp256k1 private key from its raw bytes.
+    """
+    def from_binary(privkey) when is_valid_key(privkey), do: %__MODULE__{privkey: privkey}
 
     @spec from_hex(String.t()) :: t()
     def from_hex(hex), do: from_binary(Base.decode16!(hex, case: :lower))
 
     @spec to_hex(t()) :: String.t()
-    def to_hex(%__MODULE__{} = privkey), do: Base.encode16(privkey.privkey, case: :lower)
+
+    @doc """
+    Converts a Secp256k1 private key to a hex-encoded string.
+    """
+    def to_hex(%__MODULE__{privkey: privkey}) when is_valid_key(privkey),
+      do: Base.encode16(privkey, case: :lower)
 
     @spec to_pubkey(t()) :: Hexpds.K256.PublicKey.t()
     def to_pubkey(%__MODULE__{} = privkey) when is_valid_key(privkey.privkey),
@@ -31,10 +48,12 @@ defmodule Hexpds.K256 do
     @doc """
     Signs a binary message with a Secp256k1 private key. Returns a binary signature.
     """
-    def sign(%__MODULE__{privkey: privkey}, message) when is_binary(message) do
-      with {:ok, sig_hex} <- Hexpds.K256.Internal.sign_message(privkey, message),
-           {:ok, sig} <- Base.decode16(sig_hex, case: :lower),
-           do: sig
+
+    def sign(%__MODULE__{privkey: privkey}, message)
+        when is_binary(message) and is_valid_key(privkey) do
+      with {:ok, sig} <- Hexpds.K256.Internal.sign_message(privkey, message),
+           {:ok, sig_bytes} <- Base.decode16(sig, case: :lower),
+           do: sig_bytes
     end
 
     @spec sign!(t(), binary()) :: binary()
