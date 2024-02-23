@@ -71,6 +71,7 @@ defmodule Hexpds.DidGenerator do
         pds_url
       )
 
+    Logger.info("Genesis: #{inspect(genesis)}")
     signed_genesis = Hexpds.DidPlc.Operation.add_sig(genesis, rotation_key)
     did = genesis_to_did(signed_genesis)
     Logger.info("DID: #{did}")
