@@ -32,7 +32,13 @@ defmodule Hexpds.DagCBOR do
     with {:ok, json} <- Jason.encode(l), do: encode(json)
   end
 
+  @spec decode_json(binary()) :: {:error, binary()} | {:ok, String.t()}
   def decode_json(cbor) do
     Internal.decode_dag_cbor(cbor)
+  end
+
+  @spec decode(binary()) :: {:error, binary() | Jason.DecodeError.t()} | {:ok, any()}
+  def decode (cbor) do
+    with {:ok, json} <- decode_json(cbor), do: Jason.decode(json)
   end
 end
