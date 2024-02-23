@@ -7,7 +7,6 @@ defmodule Hexpds.DagCBOR do
     def decode_dag_cbor(_cbor), do: :erlang.nif_error(:nif_not_loaded)
   end
 
-  def encode_json(json) do
   @spec encode(binary() | map()) :: {:error, binary()} | {:ok, binary()}
   @doc """
   Encodes a JSON string or a map into a CBOR binary.
@@ -25,9 +24,12 @@ defmodule Hexpds.DagCBOR do
       {:ok, to_string(cbor)}
     end
   end
-
   def encode(%{} = json) do
     with {:ok, json} <- Jason.encode(json), do: encode(json)
+  end
+
+  def encode([_ | _] = l) do
+    with {:ok, json} <- Jason.encode(l), do: encode(json)
   end
 
   def decode_json(cbor) do
