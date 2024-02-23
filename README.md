@@ -1,5 +1,5 @@
 # hexpds
-A minimum viable atproto PDS in Elixir
+An ATProto PDS in Elixir/Rust
 
 ## Installation
 
