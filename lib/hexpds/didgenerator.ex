@@ -2,7 +2,7 @@ defmodule Hexpds.DidGenerator do
   require Logger
   alias Hexpds.K256, as: K256
 
-  @spec genesis_to_did(map()) :: <<_::64, _::_*8>>
+  @spec genesis_to_did(map()) :: String.t()
   def genesis_to_did(%{"type" => "plc_operation", "prev" => nil} = signed_genesis) do
     "did:plc:" <>
       with {:ok, signed_genesis_json} <-
@@ -10,15 +10,15 @@ defmodule Hexpds.DidGenerator do
              |> Jason.encode(),
            {:ok, signed_genesis_cbor} <-
              signed_genesis_json
-             |> Hexpds.DagCBOR.encode() do
-        :crypto.hash(:sha256, signed_genesis_cbor)
-        |> Base.encode32(case: :lower)
-        |> String.slice(0..23)
-        |> String.downcase()
-      end
+             |> Hexpds.DagCBOR.encode(),
+           do:
+             :crypto.hash(:sha256, signed_genesis_cbor)
+             |> Base.encode32(case: :lower)
+             |> String.slice(0..23)
+             |> String.downcase()
   end
 
-  @spec publish_to_plc(map(), <<_::64, _::_*8>>) ::
+  @spec publish_to_plc(map(), String.t()) ::
           {:error,
            %{
              :__exception__ => true,
@@ -71,7 +71,6 @@ defmodule Hexpds.DidGenerator do
         pds_url
       )
 
-    Logger.info("Genesis: #{inspect(genesis)}")
     signed_genesis = Hexpds.DidPlc.Operation.add_sig(genesis, rotation_key)
     did = genesis_to_did(signed_genesis)
     Logger.info("DID: #{did}")
