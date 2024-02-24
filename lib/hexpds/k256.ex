@@ -72,6 +72,11 @@ defmodule Hexpds.K256 do
     defstruct [:pubkey]
     @type t :: %__MODULE__{pubkey: <<_::256>>}
 
+    # Right now these seem to be storing public keys
+    # in hex format rather than as bytes.
+    # We probably want to change this at some point,
+    # for consistency with PrivateKey.
+
     @spec create(PrivateKey.t()) :: t()
     def create(%PrivateKey{privkey: privkey}) do
       case Hexpds.K256.Internal.create_public_key(privkey) do
@@ -120,6 +125,11 @@ defmodule Hexpds.K256 do
     end
   end
 
+  defmodule Signature do
+    def verify(sig, %PublicKey{pubkey: pubkey}, message), do: Hexpds.K256.Internal.verify_signature(pubkey, message, sig)
+
+  end
+
   defmodule Internal do
     @moduledoc """
     NIF for Rust crate k256. Raw APIs, do not use directly. Instead, use the
@@ -132,5 +142,7 @@ defmodule Hexpds.K256 do
     def compress_public_key(_public_key), do: :erlang.nif_error(:nif_not_loaded)
     @spec sign_message(binary(), binary()) :: {:ok, binary()} | {:error, String.t()}
     def sign_message(_private_key, _message), do: :erlang.nif_error(:nif_not_loaded)
+    @spec verify_signature(binary(), binary(), binary()) :: boolean()
+    def verify_signature(_public_key, _message, _signature), do: :erlang.nif_error(:nif_not_loaded)
   end
 end

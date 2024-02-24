@@ -5,6 +5,8 @@ use rustler::Binary;
 use rustler::Encoder;
 use rustler::Env;
 use rustler::Term;
+use k256::ecdsa::signature::Verifier;
+
 
 mod atoms {
     rustler::atoms! {
@@ -73,10 +75,9 @@ fn sign_message<'a>(env: Env<'a>, private_key: Binary<'a>, message: Binary<'a>) 
     let signature: k256::ecdsa::Signature = signing_key.sign(message.as_slice());
 
     let signature_low_s: k256::ecdsa::Signature = match signature.normalize_s() {
-            None => signature,
-            Some(normalized) => normalized,
-        };
-
+        None => signature,
+        Some(normalized) => normalized,
+    };
 
     let signature_bytes = signature_low_s.to_bytes();
 
@@ -85,7 +86,50 @@ fn sign_message<'a>(env: Env<'a>, private_key: Binary<'a>, message: Binary<'a>) 
     (atoms::ok(), signature_hex).encode(env)
 }
 
+#[rustler::nif]
+fn verify_signature<'a>(
+    env: Env<'a>,
+    public_key: Binary<'a>,
+    message: Binary<'a>,
+    signature_bin: Binary<'a>,
+) -> Term<'a> {
+    let public_key = match hex::decode(public_key.as_slice()) {
+        Ok(key) => key,
+        Err(e) => {
+            return (
+                atoms::error(),
+                format!("Failed to decode hex string: {}", e),
+            )
+                .encode(env)
+        }
+    };
+
+    let public_key = match k256::PublicKey::from_sec1_bytes(&public_key) {
+        Ok(key) => key,
+        Err(e) => {
+            return (atoms::error(), format!("Failed to parse public key: {}", e)).encode(env)
+        }
+    };
+
+    // Signature should be in bytes
+
+    let signature = match k256::ecdsa::Signature::from_slice(signature_bin.as_slice()) {
+        Ok(sig) => sig,
+        Err(e) => return (atoms::error(), format!("Failed to parse signature: {}", e)).encode(env),
+    };
+
+
+    let verifying_key = k256::ecdsa::VerifyingKey::from(public_key);
+    let verified = verifying_key.verify(message.as_slice(), &signature);
+
+    if verified.is_ok() {
+        true.encode(env)
+    } else {
+        false.encode(env)
+    }
+}
+
 rustler::init!(
     "Elixir.Hexpds.K256.Internal",
-    [create_public_key, compress_public_key, sign_message]
+    [create_public_key, compress_public_key, sign_message, verify_signature]
 );
