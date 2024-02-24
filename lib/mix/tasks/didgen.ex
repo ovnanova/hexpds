@@ -8,7 +8,7 @@ defmodule Mix.Tasks.DidPlc.Generate do
   use Mix.Task
   alias Hexpds.DidGenerator
 
-  HTTPoison.start()
+  Application.ensure_all_started(:httpoison)
 
   @shortdoc "Generate a DID:PLC: and publish it to the PLC server set in config/config.exs - pass in a handle"
   @impl Mix.Task

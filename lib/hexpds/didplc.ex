@@ -76,6 +76,7 @@ defmodule Hexpds.DidPlc do
              {:ok,
               privkey
               |> Hexpds.K256.PrivateKey.sign(cbor)
+              |> Hexpds.K256.Signature.bytes()
               |> Base.url_encode64()
               |> String.replace("=", "")}
     end
