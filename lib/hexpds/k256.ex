@@ -18,11 +18,22 @@ defmodule Hexpds.K256 do
     def create(sig), do: %__MODULE__{sig: sig}
 
     def bytes(%__MODULE__{sig: sig}), do: sig
-    def bytes({:error, e}), do: raise e  # TODO: make this unnecessary
+    # TODO: make this unnecessary
+    def bytes({:error, e}), do: raise(e)
 
-    @spec verify(t(), Hexpds.K256.PublicKey.t(), binary()) :: boolean()
-    def verify(%__MODULE__{sig: sig}, %{pubkey: pubkey, __struct__: Hexpds.K256.PublicKey}, message),
-      do: Hexpds.K256.Internal.verify_signature(pubkey, message, sig)
+    @spec verify(t(), Hexpds.K256.PublicKey.t(), binary()) ::
+            {:ok, String.t()} | {:error, String.t()}
+    def verify(
+          %__MODULE__{sig: sig},
+          %{pubkey: pubkey, __struct__: Hexpds.K256.PublicKey},
+          message
+        ) do
+      case Hexpds.K256.Internal.verify_signature(pubkey, message, sig) do
+        true -> {:ok, "Signature #{inspect(sig)} verified"}
+        false -> {:error, "Signature #{inspect(sig)} could not be verified"}
+        tuple -> tuple
+      end
+    end
   end
 
   defmodule PrivateKey do
@@ -144,7 +155,6 @@ defmodule Hexpds.K256 do
     end
   end
 
-
   defmodule Internal do
     @moduledoc """
     NIF for Rust crate k256. Raw APIs, do not use directly. Instead, use the
@@ -157,7 +167,7 @@ defmodule Hexpds.K256 do
     def compress_public_key(_public_key), do: :erlang.nif_error(:nif_not_loaded)
     @spec sign_message(binary(), binary()) :: {:ok, binary()} | {:error, String.t()}
     def sign_message(_private_key, _message), do: :erlang.nif_error(:nif_not_loaded)
-    @spec verify_signature(binary(), binary(), binary()) :: boolean()
+    @spec verify_signature(binary(), binary(), binary()) :: boolean() | {:error, String.t()}
     def verify_signature(_public_key, _message, _signature),
       do: :erlang.nif_error(:nif_not_loaded)
   end

@@ -122,11 +122,7 @@ fn verify_signature<'a>(
     let verifying_key = k256::ecdsa::VerifyingKey::from(public_key);
     let verified = verifying_key.verify(message.as_slice(), &signature);
 
-    if verified.is_ok() {
-        true.encode(env)
-    } else {
-        false.encode(env)
-    }
+    verified.is_ok().encode(env)
 }
 
 rustler::init!(
