@@ -1,6 +1,6 @@
-defmodule HexpdsDidGeneratorTest do
+defmodule HexpdsK256Test do
   use ExUnit.Case
-  doctest Hexpds.DidGenerator
+  doctest Hexpds.K256
   alias Hexpds.K256, as: K256
 
   defp test_cases do

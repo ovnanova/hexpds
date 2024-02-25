@@ -96,6 +96,8 @@ defmodule Hexpds.CID do
 
   """
 
+  alias Hexpds.Multicodec, as: Multicodec
+
   alias __MODULE__, as: CID
 
   @enforce_keys [:version, :codec, :multihash]
