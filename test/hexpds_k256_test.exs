@@ -26,4 +26,22 @@ defmodule HexpdsK256Test do
              |> K256.PublicKey.to_did_key() == expected_did
     end
   end
+
+  test "signing and verifying" do
+    # Just having each key signing its did:key: for now
+
+    for {privkey_hex, message_to_sign} <- test_cases() do
+      signature =
+        privkey_hex
+        |> K256.PrivateKey.from_hex()
+        |> K256.PrivateKey.sign(message_to_sign)
+
+      pubkey =
+        privkey_hex
+        |> K256.PrivateKey.from_hex()
+        |> K256.PrivateKey.to_pubkey()
+
+      assert K256.Signature.verify(signature, pubkey, message_to_sign) |> elem(0) == :ok
+    end
+  end
 end
