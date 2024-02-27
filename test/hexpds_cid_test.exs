@@ -2,8 +2,7 @@ defmodule CIDTest do
 
   # Taken from nocursor/ex-cid
 
-  alias Hexpds.CID
-  alias Hexpds.Multicodec
+  alias Hexpds.{CID, Multicodec}
   use ExUnit.Case, async: true
   doctest CID
   require Multibase
@@ -42,24 +41,24 @@ defmodule CIDTest do
 
   test "errors when trying to create CIDs with codecs that don't exist", %{multihash: multihash} do
     codec = "banana fishbones"
-    assert {:error, reason} = CID.cid(multihash, codec, 0)
+    assert {:error, _reason} = CID.cid(multihash, codec, 0)
     assert_raise ArgumentError, fn -> CID.cid!(multihash, codec, 0) end
-    assert {:error, reason} = CID.cid(multihash, codec, 1)
+    assert {:error, _reason} = CID.cid(multihash, codec, 1)
     assert_raise ArgumentError, fn -> CID.cid!(multihash, codec, 1) end
   end
 
   test "errors when trying to create CIDs with versions that don't exist", %{multihash: multihash} do
     codec = "dag-pb"
-    assert {:error, reason} = CID.cid(multihash, codec, -1)
+    assert {:error, _reason} = CID.cid(multihash, codec, -1)
     assert_raise ArgumentError, fn -> CID.cid!(multihash, codec, 93349329439) end
   end
 
   test "errors when trying to create a CID v1 with an invalid multihash" do
     codec = "dag-pb"
 
-    assert {:error, reason} = CID.cid("cookie palace 5000", codec, 0)
+    assert {:error, _reason} = CID.cid("cookie palace 5000", codec, 0)
     assert_raise ArgumentError, fn -> CID.cid!("perturbed space chicken", codec, 0) end
-    assert {:error, reason} = CID.cid(<<>>, codec, 0)
+    assert {:error, _reason} = CID.cid(<<>>, codec, 0)
     assert_raise ArgumentError, fn -> CID.cid!(<<>>, codec, 0) end
   end
 
