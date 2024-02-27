@@ -3,6 +3,11 @@ defmodule HexpdsK256Test do
   doctest Hexpds.K256
   alias Hexpds.K256, as: K256
 
+  setup_all do
+    Hexpds.Multicodec.start_link()
+    :ok
+  end
+
   defp test_cases do
     %{
       "9085d2bef69286a6cbb51623c8fa258629945cd55ca705cc4e66700396894e0c" =>

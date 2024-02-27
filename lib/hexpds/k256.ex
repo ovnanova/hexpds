@@ -150,7 +150,7 @@ defmodule Hexpds.K256 do
         (pubkey
          |> compress()
          |> Base.decode16!(case: :lower)
-         |> Hexpds.Multicodec.encode(:"secp256k1-pub")
+         |> Hexpds.Multicodec.encode!(:"secp256k1-pub")
          |> Multibase.encode!(:base58_btc))
     end
   end
