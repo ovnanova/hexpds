@@ -10,7 +10,6 @@ defmodule CIDTest do
 
   #TODO: better test setup to include more re-used data or scope the data, but the data is pretty simple so.......maybe not
   setup_all do
-    Hexpds.Multicodec.start_link()
     digest = :crypto.hash(:sha256, "hello world")
     {:ok, multihash} = Multihash.encode(:sha2_256, digest)
     %{multihash: multihash}

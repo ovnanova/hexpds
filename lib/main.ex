@@ -1,18 +1,8 @@
-defmodule Hexpds.Main do
-  @moduledoc """
-  Documentation for `Hexpds`.
-  """
+defmodule Hexpds.Application do
+  use Application
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Hexpds.hello()
-      :world
-
-  """
-  def hello do
-    :world
+  @impl Application
+  def start(_type, _args) do
+    Hexpds.Multicodec.start_link()
   end
 end
