@@ -1,9 +1,9 @@
-defmodule Hexpds.MixProject do
+defmodule Hipdster.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :hexpds,
+      app: :hipdster,
       version: "0.1.0",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
@@ -14,7 +14,8 @@ defmodule Hexpds.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger, :crypto],
+      mod: {Hipdster.Application, []}
     ]
   end
 

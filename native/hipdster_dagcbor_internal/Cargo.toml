@@ -1,11 +1,11 @@
 [package]
-name = "hexpds_dagcbor_internal"
+name = "hipdster_dagcbor_internal"
 version = "0.1.0"
 authors = [ "NetWatchInc" ]
 edition = "2021"
 
 [lib]
-name = "hexpds_dagcbor_internal"
+name = "hipdster_dagcbor_internal"
 path = "src/lib.rs"
 crate-type = ["cdylib"]
 

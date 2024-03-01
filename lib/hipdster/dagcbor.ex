@@ -1,6 +1,6 @@
-defmodule Hexpds.DagCBOR do
+defmodule Hipdster.DagCBOR do
   defmodule Internal do
-    use Rustler, otp_app: :hexpds, crate: "hexpds_dagcbor_internal"
+    use Rustler, otp_app: :hipdster, crate: "hipdster_dagcbor_internal"
     @spec encode_dag_cbor(binary()) :: {:ok, binary()} | {:error, String.t()}
     def encode_dag_cbor(_json), do: :erlang.nif_error(:nif_not_loaded)
     @spec decode_dag_cbor(binary()) :: {:ok, String.t()} | {:error, String.t()}
@@ -13,7 +13,7 @@ defmodule Hexpds.DagCBOR do
 
   Examples:
 
-      iex> Hexpds.DagCBOR.encode(%{apple: "banana", cranberry: "dragonfruit"})
+      iex> Hipdster.DagCBOR.encode(%{apple: "banana", cranberry: "dragonfruit"})
       ...> |> elem(1)
       ...> |> Base.encode16()
       "A2656170706C656662616E616E61696372616E62657272796B647261676F6E6672756974"

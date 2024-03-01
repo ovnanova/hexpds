@@ -1,14 +1,16 @@
-defmodule Hexpds.Multicodec do
+defmodule Hipdster.Multicodec do
   use GenServer
 
-  def start_link(multicodec_csv \\ Application.get_env(:hexpds, :multicodec_csv_path)) do
+  def start_link(multicodec_csv \\ Application.get_env(:hipdster, :multicodec_csv_path)) do
     GenServer.start_link(__MODULE__, multicodec_csv, name: __MODULE__)
   end
 
   @impl GenServer
   def init(csv_path) do
-    {:ok, csv} = File.read(csv_path)
-    {:ok, read_csv(csv)}
+    {:ok,
+     csv_path
+     |> File.stream!()
+     |> read_csv()}
   end
 
   @impl GenServer
@@ -16,9 +18,8 @@ defmodule Hexpds.Multicodec do
     {:reply, state, state}
   end
 
-  def read_csv(csv) do
+  def read_csv(%File.Stream{} = csv) do
     csv
-    |> String.split("\n", trim: true)
     |> Stream.map(&String.replace(&1, " ", ""))
     |> Stream.map(&String.split(&1, ",", trim: true))
     |> Enum.reduce(%{}, fn [name, _tag, "0x" <> code, _status], acc ->

@@ -126,6 +126,6 @@ fn verify_signature<'a>(
 }
 
 rustler::init!(
-    "Elixir.Hexpds.K256.Internal",
+    "Elixir.Hipdster.K256.Internal",
     [create_public_key, compress_public_key, sign_message, verify_signature]
 );

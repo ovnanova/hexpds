@@ -1,6 +1,6 @@
-defmodule HexpdsDagcborTest do
+defmodule HipdsterDagcborTest do
   use ExUnit.Case
-  doctest Hexpds.DagCBOR
+  doctest Hipdster.DagCBOR
 
   defp test_cases do
     [
@@ -14,8 +14,8 @@ defmodule HexpdsDagcborTest do
 
   test "cbor roundtrip" do
     for input <- test_cases() do
-      {:ok, cbor_encoded} = Hexpds.DagCBOR.encode(Jason.encode!(input))
-      {:ok, original} = Hexpds.DagCBOR.decode(cbor_encoded)
+      {:ok, cbor_encoded} = Hipdster.DagCBOR.encode(Jason.encode!(input))
+      {:ok, original} = Hipdster.DagCBOR.decode(cbor_encoded)
       assert input == original
     end
   end

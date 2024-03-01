@@ -1,9 +1,9 @@
 import Config
 
 # example usage:
-#  Application.get_env(:hexpds, :plc_server)
+#  Application.get_env(:hipdster, :plc_server)
 
-config :hexpds,
+config :hipdster,
   plc_server: "plc.bsky-sandbox.dev",
   appview_server: "api.bsky-sandbox.dev",
   relay_server: "bgs.bsky-sandbox.dev",

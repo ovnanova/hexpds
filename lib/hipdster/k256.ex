@@ -1,7 +1,7 @@
-defmodule Hexpds.K256 do
+defmodule Hipdster.K256 do
   @moduledoc """
   Secp256k1-related functions, using the `k256` Rust crate.
-  Includes `Hexpds.K256.PrivateKey` and `Hexpds.K256.PublicKey`, which are type-safe wrappers around
+  Includes `Hipdster.K256.PrivateKey` and `Hipdster.K256.PublicKey`, which are type-safe wrappers around
   raw bytes of keys and include wrappers around the `k256` crate's `k256::PublicKey` and `k256::SecretKey` types
   and some of their helper functions required for ATProto.
   """
@@ -21,14 +21,14 @@ defmodule Hexpds.K256 do
     # TODO: make this unnecessary
     def bytes({:error, e}), do: raise(e)
 
-    @spec verify(t(), Hexpds.K256.PublicKey.t(), binary()) ::
+    @spec verify(t(), Hipdster.K256.PublicKey.t(), binary()) ::
             {:ok, String.t()} | {:error, String.t()}
     def verify(
           %__MODULE__{sig: sig},
-          %{pubkey: pubkey, __struct__: Hexpds.K256.PublicKey},
+          %{pubkey: pubkey, __struct__: Hipdster.K256.PublicKey},
           message
         ) do
-      case Hexpds.K256.Internal.verify_signature(pubkey, message, sig) do
+      case Hipdster.K256.Internal.verify_signature(pubkey, message, sig) do
         true -> {:ok, "Signature #{inspect(sig)} verified"}
         false -> {:error, "Signature #{inspect(sig)} could not be verified"}
         tuple -> tuple
@@ -41,7 +41,7 @@ defmodule Hexpds.K256 do
 
     @typedoc """
     A Secp256k1 private key. Contains the raw bytes of the key, and wraps the `k256` crate's `k256::SecretKey` type.
-    Should always be 32 bytes (256 bits) long. All operations on `Hexpds.K256.PrivateKey` are type-safe.
+    Should always be 32 bytes (256 bits) long. All operations on `Hipdster.K256.PrivateKey` are type-safe.
     """
     @type t :: %__MODULE__{privkey: <<_::256>>}
 
@@ -71,22 +71,22 @@ defmodule Hexpds.K256 do
     def to_hex(%__MODULE__{privkey: privkey}) when is_valid_key(privkey),
       do: Base.encode16(privkey, case: :lower)
 
-    @spec to_pubkey(t()) :: Hexpds.K256.PublicKey.t()
+    @spec to_pubkey(t()) :: Hipdster.K256.PublicKey.t()
     def to_pubkey(%__MODULE__{} = privkey) when is_valid_key(privkey.privkey),
-      do: Hexpds.K256.PublicKey.create(privkey)
+      do: Hipdster.K256.PublicKey.create(privkey)
 
-    @spec sign(t(), binary()) :: {:error, String.t()} | Hexpds.K256.Signature.t()
+    @spec sign(t(), binary()) :: {:error, String.t()} | Hipdster.K256.Signature.t()
     @doc """
     Signs a binary message with a Secp256k1 private key. Returns a binary signature.
     """
     def sign(%__MODULE__{privkey: privkey}, message)
         when is_binary(message) and is_valid_key(privkey) do
-      with {:ok, sig} <- Hexpds.K256.Internal.sign_message(privkey, message),
+      with {:ok, sig} <- Hipdster.K256.Internal.sign_message(privkey, message),
            {:ok, sig_bytes} <- Base.decode16(sig, case: :lower),
-           do: %Hexpds.K256.Signature{sig: sig_bytes}
+           do: %Hipdster.K256.Signature{sig: sig_bytes}
     end
 
-    @spec sign!(t(), binary()) :: Hexpds.K256.Signature.t()
+    @spec sign!(t(), binary()) :: Hipdster.K256.Signature.t()
     @doc """
     Signs a binary message with a Secp256k1 private key. Returns a binary signature. Raises on error if signing fails.
     """
@@ -109,7 +109,7 @@ defmodule Hexpds.K256 do
 
     @spec create(PrivateKey.t()) :: t()
     def create(%PrivateKey{privkey: privkey}) do
-      case Hexpds.K256.Internal.create_public_key(privkey) do
+      case Hipdster.K256.Internal.create_public_key(privkey) do
         {:ok, pubkey} -> from_binary(pubkey)
         {:error, e} -> raise e
       end
@@ -127,7 +127,7 @@ defmodule Hexpds.K256 do
     Wrapper around the `k256` crate's `k256::PublicKey::compress` function.
     """
     def compress(%__MODULE__{pubkey: pubkey}) do
-      case Hexpds.K256.Internal.compress_public_key(pubkey) do
+      case Hipdster.K256.Internal.compress_public_key(pubkey) do
         {:ok, compressed} -> compressed
         {:error, e} -> raise e
       end
@@ -150,7 +150,7 @@ defmodule Hexpds.K256 do
         (pubkey
          |> compress()
          |> Base.decode16!(case: :lower)
-         |> Hexpds.Multicodec.encode!(:"secp256k1-pub")
+         |> Hipdster.Multicodec.encode!(:"secp256k1-pub")
          |> Multibase.encode!(:base58_btc))
     end
   end
@@ -158,9 +158,9 @@ defmodule Hexpds.K256 do
   defmodule Internal do
     @moduledoc """
     NIF for Rust crate k256. Raw APIs, do not use directly. Instead, use the
-    `Hexpds.K256.PublicKey` and `Hexpds.K256.PrivateKey` modules.
+    `Hipdster.K256.PublicKey` and `Hipdster.K256.PrivateKey` modules.
     """
-    use Rustler, otp_app: :hexpds, crate: "hexpds_k256_internal"
+    use Rustler, otp_app: :hipdster, crate: "hipdster_k256_internal"
     @spec create_public_key(binary()) :: {:ok, binary()} | {:error, String.t()}
     def create_public_key(_private_key), do: :erlang.nif_error(:nif_not_loaded)
     @spec compress_public_key(binary()) :: {:ok, binary()} | {:error, String.t()}
