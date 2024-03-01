@@ -77,8 +77,7 @@ defmodule Hipdster.DidPlc do
               privkey
               |> Hipdster.K256.PrivateKey.sign(cbor)
               |> Hipdster.K256.Signature.bytes()
-              |> Base.url_encode64()
-              |> String.replace("=", "")}
+              |> Base.url_encode64(padding: false)}
     end
 
     @spec add_sig(t(), Hipdster.K256.PrivateKey.t()) ::

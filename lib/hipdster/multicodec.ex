@@ -7,8 +7,10 @@ defmodule Hipdster.Multicodec do
 
   @impl GenServer
   def init(csv_path) do
-    {:ok, csv} = File.read(csv_path)
-    {:ok, read_csv(csv)}
+    {:ok,
+     csv_path
+     |> File.stream!()
+     |> read_csv()}
   end
 
   @impl GenServer
@@ -16,9 +18,8 @@ defmodule Hipdster.Multicodec do
     {:reply, state, state}
   end
 
-  def read_csv(csv) do
+  def read_csv(%File.Stream{} = csv) do
     csv
-    |> String.split("\n", trim: true)
     |> Stream.map(&String.replace(&1, " ", ""))
     |> Stream.map(&String.split(&1, ",", trim: true))
     |> Enum.reduce(%{}, fn [name, _tag, "0x" <> code, _status], acc ->
