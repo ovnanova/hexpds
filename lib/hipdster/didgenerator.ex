@@ -1,6 +1,6 @@
-defmodule Hexpds.DidGenerator do
+defmodule Hipdster.DidGenerator do
   require Logger
-  alias Hexpds.K256, as: K256
+  alias Hipdster.K256, as: K256
 
   @spec genesis_to_did(map()) :: String.t()
   def genesis_to_did(%{"type" => "plc_operation", "prev" => nil} = signed_genesis) do
@@ -10,7 +10,7 @@ defmodule Hexpds.DidGenerator do
              |> Jason.encode(),
            {:ok, signed_genesis_cbor} <-
              signed_genesis_json
-             |> Hexpds.DagCBOR.encode(),
+             |> Hipdster.DagCBOR.encode(),
            do:
              :crypto.hash(:sha256, signed_genesis_cbor)
              |> Base.encode32(case: :lower)
@@ -55,8 +55,8 @@ defmodule Hexpds.DidGenerator do
 
   def generate_did(
         "" <> handle,
-        "" <> plc_dir_url \\ "https://#{Application.get_env(:hexpds, :plc_server)}",
-        "" <> pds_url \\ Application.get_env(:hexpds, :pds_host)
+        "" <> plc_dir_url \\ "https://#{Application.get_env(:hipdster, :plc_server)}",
+        "" <> pds_url \\ Application.get_env(:hipdster, :pds_host)
       ) do
     rotation_key = K256.PrivateKey.create()
     signing_key = K256.PrivateKey.create()
@@ -64,7 +64,7 @@ defmodule Hexpds.DidGenerator do
     Logger.info("Signing key: #{signing_key |> K256.PrivateKey.to_hex()}")
 
     genesis =
-      Hexpds.DidPlc.Operation.genesis(
+      Hipdster.DidPlc.Operation.genesis(
         rotation_key,
         signing_key,
         handle,
@@ -72,7 +72,7 @@ defmodule Hexpds.DidGenerator do
       )
 
     Logger.info("Genesis: #{inspect(genesis)}")
-    signed_genesis = Hexpds.DidPlc.Operation.add_sig(genesis, rotation_key)
+    signed_genesis = Hipdster.DidPlc.Operation.add_sig(genesis, rotation_key)
     did = genesis_to_did(signed_genesis)
     Logger.info("DID: #{did}")
 

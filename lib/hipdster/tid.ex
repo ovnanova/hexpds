@@ -1,4 +1,4 @@
-defmodule Hexpds.Tid do
+defmodule Hipdster.Tid do
   import Bitwise
 
   defstruct [:timestamp, :clock_id]
@@ -66,9 +66,9 @@ defmodule Hexpds.Tid do
     end
   end
 
-  defimpl String.Chars, for: Hexpds.Tid do
-    @spec to_string(Hexpds.Tid.t()) :: String.t()
-    defdelegate to_string(tid), to: Hexpds.Tid
+  defimpl String.Chars, for: Hipdster.Tid do
+    @spec to_string(Hipdster.Tid.t()) :: String.t()
+    defdelegate to_string(tid), to: Hipdster.Tid
   end
 
   @doc """
@@ -107,7 +107,7 @@ defmodule Hexpds.Tid do
     - Then, the `clock_id` `c` is combined into this value using the bitwise OR operation.
     - Resulting integer combines both the timestamp and clock_id in a single integer.
   """
-  @spec to_integer(Hexpds.Tid.t()) :: integer()
+  @spec to_integer(Hipdster.Tid.t()) :: integer()
   def to_integer(%__MODULE__{timestamp: t, clock_id: c}) do
     t <<< 10 ||| c
   end

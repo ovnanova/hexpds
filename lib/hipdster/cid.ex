@@ -1,4 +1,4 @@
-defmodule Hexpds.CID do
+defmodule Hipdster.CID do
   @moduledoc """
   CID - self-describing content-addressed identifiers for distributed systems.
 
@@ -96,7 +96,7 @@ defmodule Hexpds.CID do
 
   """
 
-  alias Hexpds.Multicodec, as: Multicodec
+  alias Hipdster.Multicodec, as: Multicodec
 
   alias __MODULE__, as: CID
 

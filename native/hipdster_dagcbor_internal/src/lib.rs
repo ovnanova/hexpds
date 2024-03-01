@@ -94,4 +94,4 @@ fn decode_dag_cbor<'a>(env: Env<'a>, cbor_data: Binary<'a>) -> Term<'a> {
     (atoms::ok(), json).encode(env)
 }
 
-rustler::init!("Elixir.Hexpds.DagCBOR.Internal", [encode_dag_cbor, decode_dag_cbor]);
+rustler::init!("Elixir.Hipdster.DagCBOR.Internal", [encode_dag_cbor, decode_dag_cbor]);

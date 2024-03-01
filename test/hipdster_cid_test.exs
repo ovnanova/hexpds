@@ -2,7 +2,7 @@ defmodule CIDTest do
 
   # Taken from nocursor/ex-cid
 
-  alias Hexpds.{CID, Multicodec}
+  alias Hipdster.{CID, Multicodec}
   use ExUnit.Case, async: true
   doctest CID
   require Multibase

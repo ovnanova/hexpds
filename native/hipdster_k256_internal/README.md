@@ -1,4 +1,4 @@
-# NIF for Elixir.Hexpds.K256.Internal
+# NIF for Elixir.Hipdster.K256.Internal
 
 ## To build the NIF module:
 
@@ -7,8 +7,8 @@
 ## To load the NIF:
 
 ```elixir
-defmodule Hexpds.K256.Internal do
-  use Rustler, otp_app: :hexpds, crate: "hexpds_k256_internal"
+defmodule Hipdster.K256.Internal do
+  use Rustler, otp_app: :hipdster, crate: "hipdster_k256_internal"
 
   # When your NIF is loaded, it will override this function.
   def create_public_key(private_key), do: :erlang.nif_error(:nif_not_loaded)

@@ -1,4 +1,4 @@
-# NIF for Elixir.Hexpds.DagCBOR.Internal
+# NIF for Elixir.Hipdster.DagCBOR.Internal
 
 ## To build the NIF module:
 
@@ -7,8 +7,8 @@
 ## To load the NIF:
 
 ```elixir
-defmodule Hexpds.DagCBOR.Internal do
-  use Rustler, otp_app: :hexpds, crate: "hexpds_dagcbor_internal"
+defmodule Hipdster.DagCBOR.Internal do
+  use Rustler, otp_app: :hipdster, crate: "hipdster_dagcbor_internal"
 
   # When your NIF is loaded, it will override this function.
   def encode_dag_cbor(json), do: :erlang.nif_error(:nif_not_loaded)

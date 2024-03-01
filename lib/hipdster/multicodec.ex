@@ -1,7 +1,7 @@
-defmodule Hexpds.Multicodec do
+defmodule Hipdster.Multicodec do
   use GenServer
 
-  def start_link(multicodec_csv \\ Application.get_env(:hexpds, :multicodec_csv_path)) do
+  def start_link(multicodec_csv \\ Application.get_env(:hipdster, :multicodec_csv_path)) do
     GenServer.start_link(__MODULE__, multicodec_csv, name: __MODULE__)
   end
 

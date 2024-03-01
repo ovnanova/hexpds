@@ -1,7 +1,7 @@
-defmodule HexpdsK256Test do
+defmodule HipdsterK256Test do
   use ExUnit.Case
-  doctest Hexpds.K256
-  alias Hexpds.K256, as: K256
+  doctest Hipdster.K256
+  alias Hipdster.K256, as: K256
 
   defp test_cases do
     %{

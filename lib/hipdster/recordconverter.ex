@@ -1,5 +1,5 @@
 defmodule RecordConverter do
-  alias Hexpds.CID, as: CID
+  alias Hipdster.CID, as: CID
 
   # Converts a record to a JSON-compatible format.
   def record_to_json(record) do
