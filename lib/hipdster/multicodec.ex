@@ -25,6 +25,8 @@ defmodule Hipdster.Multicodec do
   and it's easier to understand.
   """
 
+  @type multi_codec() :: any()
+
   def start_link(multicodec_csv \\ Application.get_env(:hipdster, :multicodec_csv_path)) do
     GenServer.start_link(__MODULE__, multicodec_csv, name: __MODULE__)
   end
