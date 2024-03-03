@@ -1,4 +1,3 @@
-name,                           tag,            0x00 code,           status
 identity,                       multihash,      0x00,           permanent
 cidv1,                          cid,            0x01,           permanent
 cidv2,                          cid,            0x02,           draft
