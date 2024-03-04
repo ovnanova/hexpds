@@ -1,64 +1,51 @@
-defmodule RecordConverter do
+defmodule Hipdster.RecordConverter do
+  # I'm unsure if we really need this in a separate module.
+  # I also think the function names are a bit confusing.
+  # Perhaps these could be a part of `Hipdster.Record` whenever we get there or something.
+  # Leaving it here for now
+
+  @moduledoc """
+  From picopds/record_serde.py (with slight terminology changes):
+
+  "record" object is elixir term representation of a dag_cbor blob.
+  CIDs are represented with the Hipdster.CID struct.
+
+  a "json" object is also a elixir term representation, but CIDs are referenced as {"$link": ...}
+  (and non-json-representable types, like bytes, are forbidden)
+  """
+
   alias Hipdster.CID, as: CID
 
-  # Converts a record to a JSON-compatible format.
-  def record_to_json(record) do
-    cond do
-      is_list(record) ->
-        Enum.map(record, &record_to_json/1)
+  def record_to_json([] = record), do: Enum.map(record, &record_to_json/1)
 
-      is_map(record) ->
-        Enum.reduce(record, %{}, fn {k, v}, acc ->
-          Map.put(acc, k, record_to_json(v))
-        end)
-
-      # Assuming CID module exists with an encode function
-      record.__struct__ == CID ->
-        %{"$link" => CID.encode(record, "base32")}
-
-      is_binary(record) ->
-        raise ArgumentError, "can't represent bytes as JSON"
-
-      true ->
-        record
-    end
+  def record_to_json(%{} = record) do
+    for {k, v} <- record, into: %{}, do: {k, record_to_json(v)}
   end
 
-  # Enumerates CIDs within a record.
-  def enumerate_record_cids(record) do
-    cond do
-      is_list(record) ->
-        Enum.flat_map(record, &enumerate_record_cids/1)
+  def record_to_json(%CID{} = cid), do: %{"$link" => CID.encode!(cid, :base32_lower)}
+  def record_to_json(<<>>), do: raise(ArgumentError, "can't represent bytes as JSON")
+  def record_to_json(record), do: record
 
-      is_map(record) ->
-        Enum.flat_map(record, fn {_k, v} -> enumerate_record_cids(v) end)
+  def enumerate_record_cids([] = record), do: Enum.flat_map(record, &enumerate_record_cids/1)
 
-      record.__struct__ == CID ->
-        [record]
-
-      true ->
-        []
-    end
+  def enumerate_record_cids(%{} = record) do
+    for {_k, v} <- record,
+        into: [],
+        do:
+          enumerate_record_cids(v)
+          |> List.flatten()
   end
+
+  def enumerate_record_cids(%CID{} = cid), do: [cid]
+  def enumerate_record_cids(_), do: []
 
   # Converts JSON data to a record format.
-  def json_to_record(data) do
-    cond do
-      is_list(data) ->
-        Enum.map(data, &json_to_record/1)
+  def json_to_record([] = data), do: Enum.map(data, &json_to_record/1)
+  def json_to_record({%{"$link" => link} = d}) when map_size(d) == 1, do: CID.decode!(link)
 
-      is_map(data) ->
-        if Kernel.map_size(data) == 1 and Map.has_key?(data, "$link") do
-          # Assuming CID module exists with a decode function
-          CID.decode(data["$link"])
-        else
-          Enum.reduce(data, %{}, fn {k, v}, acc ->
-            Map.put(acc, k, json_to_record(v))
-          end)
-        end
-
-      true ->
-        data
-    end
+  def json_to_record(%{} = data) do
+    for {k, v} <- data, into: %{}, do: {k, json_to_record(v)}
   end
+
+  def json_to_record(d), do: d
 end
