@@ -24,6 +24,7 @@ defmodule Hipdster.DagCBOR do
       {:ok, to_string(cbor)}
     end
   end
+
   def encode(%{} = json) do
     with {:ok, json} <- Jason.encode(json), do: encode(json)
   end
@@ -38,7 +39,7 @@ defmodule Hipdster.DagCBOR do
   end
 
   @spec decode(binary()) :: {:error, binary() | Jason.DecodeError.t()} | {:ok, any()}
-  def decode (cbor) do
+  def decode(cbor) do
     with {:ok, json} <- decode_json(cbor), do: Jason.decode(json)
   end
 end
