@@ -8,7 +8,7 @@
 
 ```elixir
 defmodule Hexpds.MST.Internal do
-  use Rustler, otp_app: :hexpds, crate: "hexpds_mst_internal"
+  use Rustler, otp_app: :hipdster, crate: "hexpds_mst_internal"
 
   # When your NIF is loaded, it will override this function.
   #def foo(), do: :erlang.nif_error(:nif_not_loaded)

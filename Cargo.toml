@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+    "native/hipdster_dagcbor_internal",
+    "native/hipdster_k256_internal",
+    "native/hipdster_mst_internal",
+]

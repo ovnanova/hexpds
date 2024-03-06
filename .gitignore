@@ -25,3 +25,6 @@ hipdster-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 *.so
+
+# Cargo build output
+/target/
