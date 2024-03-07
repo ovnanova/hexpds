@@ -1,6 +1,4 @@
 defmodule Hipdster.BlockStore do
-  import Exqlite
-
   @callback put_block(key :: binary(), value :: binary()) :: :ok | {:error, term()}
   @callback get_block(key :: binary()) :: {:ok, binary()} | {:error, term()}
   @callback del_block(key :: binary()) :: :ok | {:error, term()}
@@ -54,6 +52,12 @@ defmodule Hipdster.BlockStoreServer do
   end
 end
 
+defmodule BlockStore.Repo do
+  use Ecto.Repo,
+    otp_app: :blockstore_app,
+    adapter: Ecto.Adapters.SQLite3
+end
+
 defmodule BlocksTable do
   use Ecto.Schema
 
@@ -69,13 +73,13 @@ defmodule Hipdster.EctoBlockStore do
   @behaviour Hipdster.BlockStore
 
   def init(_type, config) do
-    {:ok, Keyword.put(config, :url, :memory)}
+    {:ok, Keyword.put(config, :database, :memory)}
   end
 
   def put_block(key, value) do
-    case Repo.get_by(BlocksTable, key: key) do
+    case get_by(BlocksTable, key: key) do
       nil ->
-        case Repo.insert!(%BlocksTable{key: key, value: value}) do
+        case insert!(%BlocksTable{key: key, value: value}) do
           {:ok, _} -> :ok
           {:error, _} -> {:error, :insert_failed}
         end
@@ -92,14 +96,14 @@ defmodule Hipdster.EctoBlockStore do
   end
 
   def get_block(key) do
-    case Repo.get_by(BlocksTable, key: key) do
+    case get_by(BlocksTable, key: key) do
       nil -> {:error, :not_found}
       block -> {:ok, block.value}
     end
   end
 
   def del_block(key) do
-    Repo.delete_all(from(b in BlocksTable, where: b.key == ^key))
+    delete_all(from(b in BlocksTable, where: b.key == ^key))
   end
 end
 
