@@ -65,6 +65,13 @@ defmodule Hipdster.MST do
   def verify(tree_hash, data) do
     # Hmmm
   end
+
+  def depth(key), do: hash_depth(:crypto.hash(:sha256, key))
+  def hash_depth(key, depth \\ 0)
+
+  def hash_depth(<<0::2, rest::bitstring>>, depth), do: hash_depth(rest, depth + 1)
+
+  def hash_depth(<<_::2, _rest::bitstring>>, depth), do: depth
 end
 
 defmodule Hipdster.MSTServer do
