@@ -5,7 +5,7 @@ import Config
 
 config :hipdster,
   plc_server: "plc.bsky-sandbox.dev",
-  appview_server: "api.bsky-sandbox.dev",
+  appview_server: "public.api.bsky.app",
   relay_server: "bgs.bsky-sandbox.dev",
   pds_host: "abyss.computer", # ignore pls for now
   multicodec_csv_path: "multicodec.csv"

@@ -24,6 +24,7 @@ defmodule Hipdster.DagCBOR do
       {:ok, to_string(cbor)}
     end
   end
+
   def encode(%{} = json) do
     with {:ok, json} <- Jason.encode(json), do: encode(json)
   end
