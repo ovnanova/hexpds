@@ -66,4 +66,13 @@ defmodule Hipdster.Http do
   XRPC.query _, "app.bsky.actor.getPreferences", %{} do
     {200, %{preferences: %{}}}
   end
+
+  # Just because we can, let's resolve handles ourselves without any validation
+  # Maybe a bad idea, and probably slightly slower than using the appview,
+  # but... just as a test for now
+  XRPC.query _, "com.atproto.identity.resolveHandle", %{handle: handle} do
+    with {:ok, did} <- Hipdster.Identity.resolve_handle(handle) do
+      {200, %{did: did}}
+    end
+  end
 end
