@@ -14,7 +14,7 @@ atoms = "2.2.3"
 elliptic-curve = "0.13.8"
 hex = "0.4.3"
 k256 = "0.13.3"
-rustler = "0.31.0"
+rustler = "0.32.0"
 [features]
 "ecdsa" = ["k256/ecdsa"]
 "arithmetic" = ["k256/arithmetic"]

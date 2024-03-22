@@ -29,9 +29,11 @@ defmodule Hipdster.MixProject do
       {:ex_doc, "~> 0.28.0", only: :dev, runtime: false},
       {:multibase, "~> 0.0.1"},
       {:ex_multihash, "~> 2.0.0"},
-      {:rustler, "~> 0.31.0"},
+      {:rustler, "~> 0.32"},
       {:toml, "~> 0.7.0"},
       {:varint, "~> 1.4"},
+      {:plug, "~> 1.15.3"},
+      {:bandit, "~> 1.3.0"},
     ]
   end
 end
