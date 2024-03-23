@@ -25,3 +25,4 @@ hipdster-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 *.so
+auth.ets
