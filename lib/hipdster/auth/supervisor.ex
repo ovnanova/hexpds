@@ -8,10 +8,9 @@ defmodule Hipdster.Auth.Supervisor do
   def init(_) do
     children = [
       {Hipdster.Auth.DB, []},
-      {Hipdster.Auth.PersistAuthDb, []}
+      {Hipdster.Auth.Persist, []}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
   end
-
 end

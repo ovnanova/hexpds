@@ -34,6 +34,7 @@ defmodule Hipdster.MixProject do
       {:varint, "~> 1.4"},
       {:plug, "~> 1.15.3"},
       {:bandit, "~> 1.3.0"},
+      {:argon2_elixir, "~> 4.0"},
     ]
   end
 end

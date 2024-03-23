@@ -1,8 +1,8 @@
-defmodule Hipdster.Auth.PersistAuthDb do
+defmodule Hipdster.Auth.Persist do
 
   @moduledoc """
-  Just saves the auth DB to disk every 20 seconds
-  I know, this is very bad, I'm sorry.
+  Just saves the auth DB to disk every 20 seconds\n
+  I know, this is very bad, I'm sorry.\n
   I will fix that soon, I promise
   """
 
