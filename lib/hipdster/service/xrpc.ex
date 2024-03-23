@@ -10,4 +10,13 @@ defmodule Hipdster.XRPC do
       end
     end
   end
+
+  defmacro procedure(conn, method, params, [do: block]) do
+    quote do
+      def xrpc_procedure(unquote(conn), unquote(method), unquote(params)) do
+        unquote(block)
+      end
+    end
+  end
+
 end

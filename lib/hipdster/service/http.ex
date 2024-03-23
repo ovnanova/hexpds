@@ -7,11 +7,26 @@ defmodule Hipdster.Http do
 
   use Plug.Router
 
-  plug(:match)
-  plug(:dispatch)
+  plug :match
+  plug :dispatch
+
+  plug Plug.Parsers,
+     parsers: [:json],
+     pass:  ["text/*"],
+     json_decoder: Jason
+
 
   get "/" do
-    send_resp(conn, 200, "Hello from Hipdster!")
+    send_resp(conn, 200,
+    """
+    Hello from Hipdster
+    ATProto PDS
+    routes /xrpc/*
+
+    Code on GitHub page
+    find it at ovnanova
+    slash hexpds
+    """)
   end
 
   get "/favicon.ico" do
@@ -30,7 +45,7 @@ defmodule Hipdster.Http do
         _, _e ->
           try do
             # We can't handle the method - try the appview
-            appview_forward_get(get_appview(conn), conn, method, params)
+            forward_query_to_appview((IO.inspect appview_for(conn)), conn, method, params)
           catch
             _, e ->
               IO.inspect(e, label: "AppView proxying error")
@@ -47,13 +62,54 @@ defmodule Hipdster.Http do
     send_resp(conn, statuscode, Jason.encode!(json_body))
   end
 
-  defp get_appview(conn) do
-    conn.req_headers
-    |> Enum.into(%{})
-    |> Map.get("atproto_proxy", Application.get_env(:hipdster, :appview_server))
+  post "/xrpc/:method" do
+    {:ok, body, conn} = read_body(conn)
+
+    {statuscode, json_resp} = try do
+      xrpc_procedure(conn, method, body)
+    catch
+      _, e -> {500, %{error: "Error", message: "Oh no! Bad request or internal server error", debug: inspect(e)}}
+    end
+
+    send_resp(conn, statuscode, Jason.encode!(json_resp))
   end
 
-  defp appview_forward_get(appview, _conn, method, params) do
+  defp appview_for(%Plug.Conn{} = c) do
+    (url_of (
+      c.req_headers
+      |> Map.new
+      |> Map.get("atproto-proxy")
+    )) || Application.get_env(:hipdster, :appview_server)
+  end
+
+
+  def url_of(nil), do: nil
+  def url_of(atproto_proxy) do
+    atproto_proxy
+    |> String.split("#")
+    |> case do
+      [did, service] ->
+        label = "##{service}"
+        {:ok, did_doc} = Hipdster.Identity.get_did(did)
+        %{"service" => services} = did_doc
+
+        endpoint = (services
+        |> Enum.find(fn
+          %{"id" => ^label} -> true
+          _ -> false
+        end)
+        |> case do
+          %{"serviceEndpoint" => "https://" <> e} -> e
+          _ -> raise "Bad atproto-proxy header: no serviceEndpoint"
+        end)
+
+        endpoint
+      _ -> raise "Bad atproto-proxy header: try did#service"
+    end
+  end
+
+
+  defp forward_query_to_appview(appview, _conn, method, params) do
     # Ignore auth for now
     %{status_code: statuscode, body: json_body} =
       "https://" <> appview <> "/xrpc/" <> method <> "?" <> URI.encode_query(params)
@@ -70,9 +126,14 @@ defmodule Hipdster.Http do
   # Just because we can, let's resolve handles ourselves without any validation
   # Maybe a bad idea, and probably slightly slower than using the appview,
   # but... just as a test for now
-  XRPC.query _, "com.atproto.identity.resolveHandle", %{handle: handle} do
+  XRPC.query c, "com.atproto.identity.resolveHandle", %{handle: handle} do
     with {:ok, did} <- Hipdster.Identity.resolve_handle(handle) do
       {200, %{did: did}}
     end
   end
+
+  XRPC.procedure c, "com.atproto.server.createSession", %{identifier: username, password: pw} do
+    {200, %{session: Hipdster.Auth.generate_session(c, username, pw)}}
+  end
+
 end
