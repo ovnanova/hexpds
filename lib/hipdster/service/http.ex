@@ -32,6 +32,15 @@ defmodule Hipdster.Http do
     send_resp(conn, 200, "Why would a PDS need a favicon?")
   end
 
+  get "/.well-known/atproto-did" do
+    {status, resp} = case Hipdster.Auth.DB.get_user conn.host do
+      %Hipdster.Auth.User{did: did} -> {200, did}
+      _ -> {404, "User not found"}
+    end
+
+    send_resp(conn, status, resp)
+  end
+
   get "/xrpc/:method" do
     conn = conn |> Plug.Conn.fetch_query_params()
     params = for {key, val} <- conn.query_params, into: %{}, do: {String.to_atom(key), val}
