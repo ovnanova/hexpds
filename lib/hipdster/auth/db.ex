@@ -5,10 +5,17 @@ defmodule Hipdster.Auth.DB do
   handles firehose stuff
   """
 
+  @tables [Hipdster.Auth.User]
+
   use GenServer
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  end
+
+  def create_tables do
+    @tables
+    |> Enum.map(&Memento.Table.create/1)
   end
 
   @impl GenServer

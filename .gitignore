@@ -26,3 +26,4 @@ hipdster-*.tar
 /tmp/
 *.so
 auth.ets
+.mnesia/

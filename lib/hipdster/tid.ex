@@ -114,6 +114,6 @@ defmodule Hipdster.Tid do
 
   @spec now() :: t()
   def now do
-    %__MODULE__{timestamp: :os.system_time(:microsecond), clock_id: :rand.uniform(1 <<< 10)}
+    %__MODULE__{timestamp: System.os_time(:microsecond), clock_id: :rand.uniform(1 <<< 10)}
   end
 end

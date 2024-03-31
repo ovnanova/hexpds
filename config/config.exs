@@ -7,5 +7,9 @@ config :hipdster,
   plc_server: "plc.bsky-sandbox.dev",
   appview_server: "public.api.bsky.app",
   relay_server: "bgs.bsky-sandbox.dev",
-  pds_host: "abyss.computer", # ignore pls for now
+  # ignore pls for now
+  pds_host: "abyss.computer",
   multicodec_csv_path: "multicodec.csv"
+
+config :mnesia,
+  dir: ~c".mnesia/#{Mix.env()}/#{node()}"

@@ -1,12 +1,28 @@
 defmodule Hipdster.Auth.User do
   alias Hipdster.K256
-  defstruct [:did, :password_hash, :handle, :signing_key, :rotation_key]
+
+  @fields [:did,
+  :handle,
+  :password_hash,
+  :signing_key,
+  :rotation_key]
+
+  use Memento.Table,
+    attributes: @fields,
+    index: [:did, :handle],
+    type: :set
+
+  @type key :: Hipdster.K256.PrivateKey.t() | Hipdster.K256.PublicKey.t()
+
+  @type signing_key :: key()
+  @type rotation_key :: key()
+
   @type t :: %__MODULE__{
-    did: String.t(),
-    password_hash: String.t(),
+    did: Hipdster.Identity.did(),
     handle: String.t(),
-    signing_key: Hipdster.K256.PrivateKey.t(),
-    rotation_key: Hipdster.K256.PrivateKey.t()
+    password_hash: String.t(),
+    signing_key: signing_key(),
+    rotation_key: rotation_key()
   }
 
   defmodule CreateOpts do

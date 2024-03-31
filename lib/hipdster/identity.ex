@@ -3,6 +3,11 @@ defmodule Hipdster.Identity do
   Stuff like resolving a handle, fetching a DID, generating JWTs, etc
   """
 
+  @type did_plc :: <<_::256>>
+  @type did_web :: String.t()
+
+  @type did :: did_plc() | did_web()
+
   def resolve_handle(domain) do
     lookup_did_by_dns(domain)
     |> case do
