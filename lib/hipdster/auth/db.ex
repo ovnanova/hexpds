@@ -3,10 +3,12 @@ defmodule Hipdster.Auth.DB do
   Wrappers around some common Mnesia functions
   """
 
-  @tables [Hipdster.Auth.User]
+  @tables [Hipdster.Auth.User, Hipdster.Blob]
+
+  def tables, do: @tables
 
   def create_tables do
-    @tables
+    tables()
     |> Enum.map(&Memento.Table.create/1)
   end
 

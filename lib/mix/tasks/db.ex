@@ -2,7 +2,6 @@ defmodule Mix.Tasks.Database.Setup do
   use Mix.Task
 
   @nodes [node()]
-  @tables [Hipdster.Auth.User]
 
   @impl Mix.Task
   def run(_) do
@@ -17,7 +16,6 @@ defmodule Mix.Tasks.Database.Setup do
     Memento.start()
 
 
-    Enum.each(@tables, &Memento.Table.create!(&1, disc_copies: @nodes))
-
+    Enum.each(Hipdster.Auth.DB.tables(), &Memento.Table.create(&1, disc_copies: @nodes))
   end
 end

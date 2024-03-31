@@ -36,6 +36,7 @@ defmodule Hipdster.MixProject do
       {:bandit, "~> 1.3.0"},
       {:argon2_elixir, "~> 4.0"},
       {:memento, "~> 0.3.2"},
+      {:infer, "~> 0.2.5"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
     ]
   end
