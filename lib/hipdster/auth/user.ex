@@ -5,12 +5,27 @@ defmodule Hipdster.Auth.User do
   :handle,
   :password_hash,
   :signing_key,
-  :rotation_key]
+  :rotation_key,
+  :data]
 
   use Memento.Table,
     attributes: @fields,
-    index: [:did, :handle],
+    index: [:handle],
     type: :set
+
+
+  defmodule Data do
+    defstruct preferences: %{}
+
+    @moduledoc """
+    The data associated with a user, like preferences. Mostly
+    just here to prevent the mnesia table definition from getting
+    out of hand. Who knows, this may all disappear and be replaced by
+    postgres anyways.
+    """
+
+    @type t :: %__MODULE__{preferences: map()}
+  end
 
   @type key :: Hipdster.K256.PrivateKey.t() | Hipdster.K256.PublicKey.t()
 
@@ -22,7 +37,8 @@ defmodule Hipdster.Auth.User do
     handle: String.t(),
     password_hash: String.t(),
     signing_key: signing_key(),
-    rotation_key: rotation_key()
+    rotation_key: rotation_key() | [rotation_key()],
+    data: Hipdster.Auth.User.Data.t()
   }
 
   defmodule CreateOpts do
@@ -35,6 +51,7 @@ defmodule Hipdster.Auth.User do
     @type t :: %__MODULE__{handle: String.t(), password: String.t()}
   end
 
+
   @spec create(String.t(), String.t()) :: Hipdster.Auth.User.t()
   def create(handle, pw) do
     %{did: did, signing_key: signing_key, rotation_key: rotation_key} =
@@ -45,7 +62,8 @@ defmodule Hipdster.Auth.User do
       handle: handle,
       password_hash: Argon2.hash_pwd_salt(pw),
       signing_key: signing_key |> K256.PrivateKey.from_hex(),
-      rotation_key: rotation_key |> K256.PrivateKey.from_hex()
+      rotation_key: rotation_key |> K256.PrivateKey.from_hex(),
+      data: %__MODULE__.Data{}
     }
     |> tap(&Hipdster.Auth.DB.create_user/1)
   end
@@ -64,5 +82,4 @@ defmodule Hipdster.Auth.User do
       _ -> false
     end
   end
-
 end

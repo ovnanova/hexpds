@@ -8,7 +8,6 @@ defmodule Hipdster.Application do
       [
         {Bandit, plug: Hipdster.Http, scheme: :http},
         {Hipdster.Multicodec, Application.get_env(:hipdster, :multicodec_csv_path)},
-        {Hipdster.Auth.Supervisor, []}
       ],
       strategy: :one_for_one,
       name: Hipdster.Supervisor

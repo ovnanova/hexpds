@@ -1,76 +1,36 @@
 defmodule Hipdster.Auth.DB do
   @moduledoc """
-  This is a very temporary implementation that does some very stupid stuff.
-  It'll probably be replaced by a central Postgres database that also
-  handles firehose stuff
+  Wrappers around some common Mnesia functions
   """
 
   @tables [Hipdster.Auth.User]
-
-  use GenServer
-
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
-  end
 
   def create_tables do
     @tables
     |> Enum.map(&Memento.Table.create/1)
   end
 
-  @impl GenServer
-  def init(_) do
-    case load() do
-      {:ok, table} ->
-        {:ok, table}
-
-      {:error, _} ->
-        {:ok, :ets.new(__MODULE__, [:set, :public])}
-    end
-  end
-
-  @impl GenServer
-  def handle_call(:get_table, _, state) do
-    {:reply, state, state}
-  end
-
-  @spec table() :: :ets.tab()
-  def table() do
-    GenServer.call(__MODULE__, :get_table)
-  end
-
-  def persist do
-    :ets.tab2file(table(), ~c"auth.ets")
-  end
-
-  defp load do
-    :ets.file2tab(~c"auth.ets")
-  end
-
-  @spec create_user(Hipdster.Auth.User.t()) :: true
-  def create_user(%Hipdster.Auth.User{did: did} = user) do
-    :ets.insert(table(), {did, user})
-    |> tap(fn _ -> persist() end)
+  @spec create_user(Hipdster.Auth.User.t()) :: {:ok, Hipdster.Auth.User.t()}
+  def create_user(%Hipdster.Auth.User{} = user) do
+    Memento.transaction(fn -> Memento.Query.write(user) end)
   end
 
   @spec get_user(String.t()) :: Hipdster.Auth.User.t() | :error
   def get_user("did:" <> _ = did) do
-      :ets.lookup_element(table(), did, 2, :error)
+    with {:ok, %Hipdster.Auth.User{} = user} <-
+           Memento.transaction(fn -> Memento.Query.read(Hipdster.Auth.User, did) end) do
+      user
+    else
+      _ -> :error
+    end
   end
 
   def get_user(handle) do
-    with {:halt, u} <-
-           :ets.foldl(
-             fn
-               {_did, %Hipdster.Auth.User{handle: ^handle} = user}, _acc ->
-                 {:halt, user}
-
-               _, acc ->
-                 acc
-             end,
-             :error,
-             table()
-           ),
-         do: u
+    with {:ok, [user_tup]} <-
+           Memento.transaction(fn -> :mnesia.index_read(Hipdster.Auth.User, handle, :handle) end) do
+      Memento.Query.Data.load(user_tup)
+    else
+      _ -> :error
+    end
   end
 end
