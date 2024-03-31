@@ -5,12 +5,15 @@ use rustler::Term;
 use rustler::Binary;
 use serde_json::from_str;
 use serde_json::Value;
+use serde_json::json;
 use libipld::Ipld;
 use libipld::Cid;
 use libipld::codec::Codec;
 use libipld::cbor::DagCborCodec;
 use std::collections::BTreeMap;
 use std::str::FromStr;
+use data_encoding::BASE64_NOPAD;
+
 
 mod atoms {
     rustler::atoms! {
@@ -19,6 +22,7 @@ mod atoms {
     }
 }
 
+// taken from bnewbold/adenosine (https://gitlab.com/bnewbold/adenosine)
 pub fn json_to_ipld(val: Value) -> Ipld {
     match val {
         Value::Null => Ipld::Null,
@@ -51,6 +55,24 @@ pub fn json_to_ipld(val: Value) -> Ipld {
     }
 }
 
+// Taken from bnewbold/adenosine
+pub fn ipld_to_json(val: Ipld) -> Value {
+    match val {
+        Ipld::Null => Value::Null,
+        Ipld::Bool(b) => Value::Bool(b),
+        Ipld::Integer(v) => json!(v),
+        Ipld::Float(v) => json!(v),
+        Ipld::String(s) => Value::String(s),
+        Ipld::Bytes(b) => Value::String(BASE64_NOPAD.encode(&b)),
+        Ipld::List(l) => Value::Array(l.into_iter().map(ipld_to_json).collect()),
+        Ipld::Map(m) => Value::Object(serde_json::Map::from_iter(
+            m.into_iter().map(|(k, v)| (k, ipld_to_json(v))),
+        )),
+        Ipld::Link(c) => Value::String(c.to_string()),
+    }
+}
+
+
 #[rustler::nif]
 fn encode_dag_cbor(env: Env, json: String) -> NifResult<Term> {
     let parsed_json: serde_json::Value = match from_str(&json) {
@@ -81,17 +103,25 @@ fn encode_dag_cbor(env: Env, json: String) -> NifResult<Term> {
 
 #[rustler::nif]
 fn decode_dag_cbor<'a>(env: Env<'a>, cbor_data: Binary<'a>) -> Term<'a> {
-    let parsed_cbor: serde_json::Value = match serde_ipld_dagcbor::from_slice(&cbor_data) {
+    let decoded_cbor = match DagCborCodec.decode(&cbor_data) {
         Ok(cbor) => cbor,
-        Err(e) => return (atoms::error(), format!("Failed to parse DAG-CBOR: {}", e)).encode(env),
+        Err(e) => {
+            return (
+                atoms::error(),
+                format!("Failed to decode from DAG-CBOR: {}", e),
+            )
+                .encode(env)
+        }
     };
 
-    let json = match serde_json::to_string(&parsed_cbor) {
-        Ok(json) => json,
-        Err(e) => return (atoms::error(), format!("Failed to encode to JSON: {}", e)).encode(env),
+    let json = ipld_to_json(decoded_cbor);
+
+    let json_string = match serde_json::to_string(&json) {
+        Ok(string) => string,
+        Err(e) => return (atoms::error(), format!("Failed to serialize JSON: {}", e)).encode(env),
     };
 
-    (atoms::ok(), json).encode(env)
+    (atoms::ok(), json_string).encode(env)
 }
 
 rustler::init!("Elixir.Hipdster.DagCBOR.Internal", [encode_dag_cbor, decode_dag_cbor]);

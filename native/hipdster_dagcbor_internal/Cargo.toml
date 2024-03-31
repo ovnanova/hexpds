@@ -12,7 +12,7 @@ crate-type = ["cdylib"]
 [dependencies]
 libipld = "0.16.0"
 rustler = "0.32.0"
-serde_ipld_dagcbor = "0.5.0"
+data-encoding = "2.5.0"
 serde_json = "1.0.113"
 [features]
 "preserve_order" = []
