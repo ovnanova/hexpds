@@ -27,3 +27,6 @@ hipdster-*.tar
 *.so
 auth.ets
 .mnesia/
+
+# Cargo build output
+/target/
