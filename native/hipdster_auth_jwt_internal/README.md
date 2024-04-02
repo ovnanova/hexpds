@@ -11,7 +11,7 @@ defmodule Hipdster.Auth.JWT.Internal do
   use Rustler, otp_app: :hipdster, crate: "hipdster_auth_jwt_internal"
 
   # When your NIF is loaded, it will override this function.
-  def add(_a, _b), do: :erlang.nif_error(:nif_not_loaded)
+  def generate_jwt(account_did, service_did, key, is_k256,), do: :erlang.nif_error(:nif_not_loaded)
 end
 ```
 

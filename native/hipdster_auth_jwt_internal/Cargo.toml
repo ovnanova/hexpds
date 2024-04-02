@@ -10,4 +10,5 @@ path = "src/lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
+jwt-simple = "0.12.9"
 rustler = "0.32.1"
