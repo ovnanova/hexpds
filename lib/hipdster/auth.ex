@@ -11,4 +11,13 @@ defmodule Hipdster.Auth do
     }
   end
 
+  def admin_auth("Basic " <> credentials) do
+    with {:ok, creds} <- Base.decode64(credentials),
+         ["admin", password] <- String.split(creds, ":") do
+      Application.get_env(:hipdster, :admin_password) == password
+    else
+      _ -> false
+    end
+  end
+
 end

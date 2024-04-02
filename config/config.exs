@@ -9,7 +9,8 @@ config :hipdster,
   relay_server: "bgs.bsky-sandbox.dev",
   # ignore pls for now
   pds_host: "abyss.computer",
-  multicodec_csv_path: "multicodec.csv"
+  multicodec_csv_path: "multicodec.csv",
+  admin_password: "admin"
 
 config :mnesia,
   dir: ~c".mnesia/#{Mix.env()}/#{node()}"

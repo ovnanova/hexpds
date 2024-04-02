@@ -33,10 +33,11 @@ defmodule Hipdster.Http do
   end
 
   get "/.well-known/atproto-did" do
-    {status, resp} = case Hipdster.Auth.DB.get_user conn.host do
-      %Hipdster.Auth.User{did: did} -> {200, did}
-      _ -> {404, "User not found"}
-    end
+    {status, resp} =
+      case Hipdster.Auth.DB.get_user(conn.host) do
+        %Hipdster.Auth.User{did: did} -> {200, did}
+        _ -> {404, "User not found"}
+      end
 
     send_resp(conn, status, resp)
   end
@@ -67,7 +68,15 @@ defmodule Hipdster.Http do
           end
       end
 
-    send_resp(conn, statuscode, Jason.encode!(json_body))
+    case json_body do
+      {:blob, blob} ->
+        conn
+        |> Plug.Conn.put_resp_content_type(blob.mime_type)
+        |> Plug.Conn.send_resp(200, blob.data)
+
+      _ ->
+        send_resp(conn, statuscode, Jason.encode!(json_body))
+    end
   end
 
   post "/xrpc/:method" do
@@ -137,6 +146,14 @@ defmodule Hipdster.Http do
   XRPC.query _, "com.atproto.identity.resolveHandle", %{handle: handle} do
     with {:ok, did} <- Hipdster.Identity.resolve_handle(handle) do
       {200, %{did: did}}
+    end
+  end
+
+  XRPC.query _, "com.atproto.sync.getBlob", %{did: _did, cid: cid} do
+    with %Hipdster.Blob{} = blob <- Hipdster.Blob.get(cid) do
+      {200, {:blob, blob}}
+    else
+      _ -> {400, %{error: "InvalidRequest", message: "No such blob"}}
     end
   end
 
