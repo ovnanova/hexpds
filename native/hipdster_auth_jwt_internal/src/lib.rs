@@ -35,13 +35,4 @@ fn generate_jwt(
     Ok(token)
 }
 
-fn load(env: Env, _info: Term) -> bool {
-    rustler::resource!(MyResource, env);
-    true
-}
-
-rustler::init!(
-    "Elixir.Hipdster.Auth.JWT.Internal",
-    [generate_jwt],
-    load = load
-);
+rustler::init!("Elixir.Hipdster.Auth.JWT.Internal", [generate_jwt]);
