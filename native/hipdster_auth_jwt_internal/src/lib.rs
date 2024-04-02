@@ -10,7 +10,7 @@ fn generate_jwt(
     is_k256: bool,
 ) -> Result<String, &'static str> {
     let key = if is_k256 {
-        ES256KKeyPair::from_bytes(key).map_err(|_| "Invalid K256 key")?
+        ES256kKeyPair::from_bytes(key).map_err(|_| "Invalid K256 key")?
     } else {
         ES256KeyPair::from_bytes(key).map_err(|_| "Invalid P256 key")?
     };
