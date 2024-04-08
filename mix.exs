@@ -37,6 +37,8 @@ defmodule Hipdster.MixProject do
       {:argon2_elixir, "~> 4.0"},
       {:memento, "~> 0.3.2"},
       {:infer, "~> 0.2.5"},
+      {:ecto, "~> 3.11.2"},
+      {:ecto_sqlite3, "~> 0.15"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
     ]
   end

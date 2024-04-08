@@ -34,8 +34,8 @@ defmodule Hipdster.Http do
 
   get "/.well-known/atproto-did" do
     {status, resp} =
-      case Hipdster.Auth.DB.get_user(conn.host) do
-        %Hipdster.Auth.User{did: did} -> {200, did}
+      case Hipdster.User.get(conn.host) do
+        %Hipdster.User{did: did} -> {200, did}
         _ -> {404, "User not found"}
       end
 
@@ -149,8 +149,8 @@ defmodule Hipdster.Http do
     end
   end
 
-  XRPC.query _, "com.atproto.sync.getBlob", %{did: _did, cid: cid} do
-    with %Hipdster.Blob{} = blob <- Hipdster.Blob.get(cid) do
+  XRPC.query _, "com.atproto.sync.getBlob", %{did: did, cid: cid} do
+    with %Hipdster.Blob{} = blob <- Hipdster.Blob.get(cid, did) do
       {200, {:blob, blob}}
     else
       _ -> {400, %{error: "InvalidRequest", message: "No such blob"}}

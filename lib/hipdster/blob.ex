@@ -5,67 +5,84 @@ defmodule Hipdster.Blob do
   """
   alias Hipdster.CID
 
-  use Memento.Table,
-    attributes: [:cid, :mime_type, :data, :did],
-    index: [:did],
-    type: :set
+  use Ecto.Schema
+  import Ecto.Query
+
+  schema "blobs" do
+    # hash of did + cid (sha256) to avoid duplicates
+    field(:hash, :binary)
+    field(:did, :string)
+    field(:cid, Ecto.Types.Cid)
+    field(:mime_type, :string)
+    field(:data, :binary)
+    timestamps()
+  end
 
   @type t :: %__MODULE__{
           cid: Hipdster.CID.t(),
           mime_type: String.t(),
           data: binary(),
-          did: Hipdster.Identity.did()
+          did: Hipdster.Identity.did(),
+          hash: <<_::256>>
         }
 
-  def errorcheck({:ok, data}), do: data
-  def errorcheck({:error, reason}), do: raise(reason)
-
-  def new(raw_bytes, %Hipdster.Auth.User{did: did}) do
+  def new(raw_bytes, %Hipdster.User{did: did}) do
     %__MODULE__{
       cid:
-        Multihash.encode(:sha2_256, :crypto.hash(:sha256, raw_bytes))
-        |> errorcheck()
-        |> CID.cid!("raw"),
+        raw_bytes
+        |> bytes_to_cid(),
       mime_type: get_mime_type(raw_bytes),
       data: raw_bytes,
-      did: did
+      did: did,
+      hash: hash(did, raw_bytes)
     }
   end
 
-  defp get_mime_type(data) do
-    with %Infer.Type{mime_type: mime_type} <- Infer.get(data) do
-      mime_type
-    else
-      _ -> "application/octet-stream"
+  @spec bytes_to_cid(binary()) :: Hipdster.CID.t()
+  def bytes_to_cid(bytes) do
+    with {:ok, multihash} <- Multihash.encode(:sha2_256, :crypto.hash(:sha256, bytes)) do
+      multihash |> CID.cid!("raw")
     end
   end
 
-  @spec cid_string(Hipdster.Blob.t()) :: binary()
-  def cid_string(%__MODULE__{cid: cid}) do
-    Hipdster.CID.encode!(cid, :base32_lower)
+  def hash(did, "bafkr" <> _ = cid)  do
+    hash(did, CID.decode_cid!(cid))
+  end
+  def hash(did, %CID{} = cid), do: :crypto.hash(:sha256, did <> cid_string(cid))
+  def hash(did, bytes) do
+    hash(did, bytes |> bytes_to_cid())
   end
 
-  def save(%__MODULE__{} = blob) do
-    Memento.transaction(fn ->
-      Memento.Query.write(blob)
-    end)
+
+  defp get_mime_type(<<>> <> data) do
+    Infer.get(data) |> get_mime_type()
   end
 
-  def get(cid) do
-    with {cid, :base32_lower} <- Hipdster.CID.decode!(cid),
-         {:ok, blob} <-
-           Memento.transaction(fn ->
-             Memento.Query.read(Hipdster.Blob, cid)
-           end) do
-      blob
-    end
+  defp get_mime_type(%{mime_type: mime_type}), do: mime_type
+  defp get_mime_type(nil), do: "application/octet-stream"
+
+  @spec cid_string(Hipdster.Blob.t() | Hipdster.CID.t() | String.t()) :: binary()
+  def cid_string(%__MODULE__{cid: cid}), do: cid_string(cid)
+
+  def cid_string(%CID{} = cid), do: Hipdster.CID.encode!(cid, :base32_lower)
+  def cid_string("bafkr" <> _ = cid), do: cid
+
+  def save(%__MODULE__{} = blob), do: Hipdster.Database.insert(blob)
+
+  def get(cid, "did:" <> _ = did) do
+    hash = hash(did, cid_string(cid))
+    (from Hipdster.Blob, where: [hash: ^hash])
+    |> Hipdster.Database.one()
   end
 
-  def of_user(%Hipdster.Auth.User{did: did}) do
-    with {:ok, blobs} <- Memento.transaction(fn ->
-      :mnesia.index_read(Hipdster.Blob, did, :did)
-    end),
-         do: blobs |> Enum.map(&Memento.Query.Data.load/1)
-  end
+  def get("did:" <> _ = did, cid), do: get(cid, did)
 
+  def with_did(cid) do
+    (from Hipdster.Blob, where: [cid: ^cid])
+    |> Hipdster.Database.all()
+  end
+  def of_user(%Hipdster.User{did: did}) do
+    (from Hipdster.Blob, where: [did: ^did])
+    |> Hipdster.Database.all()
+  end
 end

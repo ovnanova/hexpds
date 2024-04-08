@@ -30,3 +30,8 @@ auth.ets
 
 # Cargo build output
 /target/
+
+# SQLite
+pds
+pds-shm
+pds-wal
