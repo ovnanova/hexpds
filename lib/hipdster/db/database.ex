@@ -8,5 +8,4 @@ defmodule Hipdster.Database do
   use Ecto.Repo,
     otp_app: :hipdster,
     adapter: Application.compile_env(:hipdster, :ecto_adapter)
-
 end

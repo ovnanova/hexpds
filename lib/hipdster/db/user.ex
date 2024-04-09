@@ -27,7 +27,7 @@ defmodule Hipdster.User do
     password_hash: String.t(),
     signing_key: signing_key(),
     rotation_key: rotation_key() | [rotation_key()],
-    data: Hipdster.Auth.User.Data.t()
+    data: map()
   }
 
   def get("did:" <> _ = did) do

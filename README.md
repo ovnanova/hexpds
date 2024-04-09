@@ -9,12 +9,12 @@ Statuses for various components:
    - Identity resolution - more or less complete
    - cryptographic key generation, signing, and validation - complete (secp256k1 only)
    - DID PLC operation signing (CBOR) - creates complete, probably easy to add updates from here
-   - transforming between JSON and CBOR - complete (though probably will remove serde_ipld_dagcbor in favor of libipld)
+   - transforming between JSON and CBOR - complete
    - Lexicon validation - not currently planned
    - MST - started
    - Firehose - not started
    - TID generation (and decoding!!) - complete
-   - blobs - not started
+   - blobs - getBlob, listBlobs - uploadBlob held up by auth/jwt
    - service proxy header - parses and finds service URL
    - inter-service auth - need JWT stuff
    - preferences - almost ready to start

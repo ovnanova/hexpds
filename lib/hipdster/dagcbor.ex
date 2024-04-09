@@ -33,11 +33,22 @@ defmodule Hipdster.DagCBOR do
     with {:ok, json} <- Jason.encode(l), do: encode(json)
   end
 
+  @doc """
+  Decodes a CBOR binary into a JSON string.
+  """
   @spec decode_json(binary()) :: {:error, binary()} | {:ok, String.t()}
   def decode_json(cbor) do
     Internal.decode_dag_cbor(cbor)
   end
 
+  @doc """
+  Decodes a CBOR binary into an erlang term.
+  Examples:
+
+      iex> Hipdster.DagCBOR.decode(<<131,0,3,4>>)
+      ...> |> elem(1)
+      [0, 3, 4]
+  """
   @spec decode(binary()) :: {:error, binary() | Jason.DecodeError.t()} | {:ok, any()}
   def decode (cbor) do
     with {:ok, json} <- decode_json(cbor), do: Jason.decode(json)

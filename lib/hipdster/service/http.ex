@@ -49,11 +49,16 @@ defmodule Hipdster.Http do
     {statuscode, json_body} =
       try do
         # We can handle the method
+        IO.puts("Got query: #{method} #{inspect(params)}")
         xrpc_query(conn, method, params)
       catch
-        _, _e ->
+        _, e_from_method ->
           try do
             # We can't handle the method - try the appview
+            case e_from_method do
+              %FunctionClauseError{} -> IO.inspect(e_from_method)
+              _ -> throw(e_from_method)
+            end
             forward_query_to_appview(IO.inspect(appview_for(conn)), conn, method, params)
           catch
             _, e ->
@@ -63,7 +68,7 @@ defmodule Hipdster.Http do
                %{
                  error: "Error",
                  message: "Oh no! Bad request or internal server error",
-                 debug: inspect(e)
+                 debug: inspect(e),
                }}
           end
       end
@@ -73,7 +78,6 @@ defmodule Hipdster.Http do
         conn
         |> Plug.Conn.put_resp_content_type(blob.mime_type)
         |> Plug.Conn.send_resp(200, blob.data)
-
       _ ->
         send_resp(conn, statuscode, Jason.encode!(json_body))
     end
@@ -135,18 +139,11 @@ defmodule Hipdster.Http do
     {statuscode, Jason.decode!(json_body)}
   end
 
-  # Don't bother with this for now
+  @spec xrpc_query(Plug.Conn.t(), String.t(), map()) :: {integer(), map()}
+
+  # As soon as we got JWTs we can do this!!!
   XRPC.query _, "app.bsky.actor.getPreferences", %{} do
     {200, %{preferences: %{}}}
-  end
-
-  # Just because we can, let's resolve handles ourselves without any validation
-  # Maybe a bad idea, and probably slightly slower than using the appview,
-  # but... just as a test for now
-  XRPC.query _, "com.atproto.identity.resolveHandle", %{handle: handle} do
-    with {:ok, did} <- Hipdster.Identity.resolve_handle(handle) do
-      {200, %{did: did}}
-    end
   end
 
   XRPC.query _, "com.atproto.sync.getBlob", %{did: did, cid: cid} do
@@ -157,6 +154,22 @@ defmodule Hipdster.Http do
     end
   end
 
+  XRPC.query _, "com.atproto.sync.listBlobs", opts do
+    case Hipdster.Xrpc.Query.ListBlobs.list_blobs(
+           opts[:did],
+           opts[:since],
+           String.to_integer(opts[:limit] || 500),
+           Hipdster.CID.decode_cid!(opts[:cursor])
+         ) do
+      %{cids: cids, cursor: next_cursor} ->
+        {200, %{cursor: next_cursor, cids: Enum.map(cids, &to_string/1)}}
+
+      other ->
+        {400, %{error: "InvalidRequest", message: inspect(other)}}
+    end
+  end
+
+  @spec xrpc_procedure(Plug.Conn.t(), String.t(), map()) :: {integer(), map()}
   XRPC.procedure c, "com.atproto.server.createSession", %{identifier: username, password: pw} do
     {200, %{session: Hipdster.Auth.generate_session(c, username, pw)}}
   end

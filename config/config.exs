@@ -13,7 +13,12 @@ config :hipdster,
   admin_password: "admin",
   # or Ecto.Adapters.Postgres in production
   ecto_adapter: Ecto.Adapters.SQLite3,
-  ecto_repos: [Hipdster.Database]
+  ecto_repos: [Hipdster.Database],
+  port: (case Mix.env do
+    :prod -> 3999
+    :dev -> 4000
+    :test -> 4001
+  end)
 
 config :hipdster, Hipdster.Database,
   # Replace with Postgres URL in production!

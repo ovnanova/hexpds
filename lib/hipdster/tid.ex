@@ -2,6 +2,12 @@ defmodule Hipdster.Tid do
   import Bitwise
 
   defstruct [:timestamp, :clock_id]
+  @b32_charset "234567abcdefghijklmnopqrstuvwxyz"
+
+  @typedoc """
+  A number of microseconds since the UNIX epoch, as a 64-bit non-negative integer
+  """
+  @type unix_microseconds :: non_neg_integer()
 
   @typedoc """
     A TID is a 13-character string.
@@ -25,12 +31,6 @@ defmodule Hipdster.Tid do
   """
   @type t :: %__MODULE__{timestamp: unix_microseconds(), clock_id: non_neg_integer()}
 
-  @typedoc """
-  A number of microseconds since the UNIX epoch, as a 64-bit non-negative integer
-  """
-  @type unix_microseconds :: non_neg_integer()
-
-  @b32_charset "234567abcdefghijklmnopqrstuvwxyz"
 
   @spec from_string(String.t()) :: t() | {:error, String.t()}
   def from_string(str) when is_binary(str) and byte_size(str) == 13 do
@@ -115,5 +115,10 @@ defmodule Hipdster.Tid do
   @spec now() :: t()
   def now do
     %__MODULE__{timestamp: System.os_time(:microsecond), clock_id: :rand.uniform(1 <<< 10)}
+  end
+
+  @spec empty() :: t()
+  def empty do
+    %__MODULE__{timestamp: 0, clock_id: 0}
   end
 end
