@@ -50,13 +50,14 @@ defmodule Hipdster.Http do
       try do
         # We can handle the method
         IO.puts("Got query: #{method} #{inspect(params)}")
-        xrpc_query(conn, method, params)
+        xrpc_query(conn, method, params, :unauthenticated)
       catch
         _, e_from_method ->
           try do
             # We can't handle the method - try the appview
             case e_from_method do
               %FunctionClauseError{} -> IO.inspect(e_from_method)
+              :function_clause -> IO.inspect(e_from_method)
               _ -> throw(e_from_method)
             end
             forward_query_to_appview(IO.inspect(appview_for(conn)), conn, method, params)
@@ -88,7 +89,7 @@ defmodule Hipdster.Http do
 
     {statuscode, json_resp} =
       try do
-        xrpc_procedure(conn, method, body)
+        xrpc_procedure(conn, method, body, :unauthenticated)
       catch
         _, e ->
           {500,
@@ -139,7 +140,7 @@ defmodule Hipdster.Http do
     {statuscode, Jason.decode!(json_body)}
   end
 
-  @spec xrpc_query(Plug.Conn.t(), String.t(), map()) :: {integer(), map()}
+  @spec xrpc_query(Plug.Conn.t(), String.t(), map(), Hipdster.User.t() | :unauthenticated) :: {integer(), map() | {:blob, Hipdster.Blob.t()}}
 
   # As soon as we got JWTs we can do this!!!
   XRPC.query _, "app.bsky.actor.getPreferences", %{} do
@@ -169,7 +170,7 @@ defmodule Hipdster.Http do
     end
   end
 
-  @spec xrpc_procedure(Plug.Conn.t(), String.t(), map()) :: {integer(), map()}
+  @spec xrpc_procedure(Plug.Conn.t(), String.t(), map(), Hipdster.User.t() | :unauthenticated) :: {integer(), map()}
   XRPC.procedure c, "com.atproto.server.createSession", %{identifier: username, password: pw} do
     {200, %{session: Hipdster.Auth.generate_session(c, username, pw)}}
   end

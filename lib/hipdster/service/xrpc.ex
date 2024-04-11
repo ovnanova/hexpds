@@ -5,7 +5,7 @@ defmodule Hipdster.XRPC do
 
   defmacro query(conn, method, params, [do: block]) do
     quote do
-      def xrpc_query(unquote(conn), unquote(method), unquote(params)) do
+      def xrpc_query(unquote(conn), unquote(method), unquote(params), user) do
         unquote(block)
       end
     end
@@ -13,7 +13,7 @@ defmodule Hipdster.XRPC do
 
   defmacro procedure(conn, method, params, [do: block]) do
     quote do
-      def xrpc_procedure(unquote(conn), unquote(method), unquote(params)) do
+      def xrpc_procedure(unquote(conn), unquote(method), unquote(params), user) do
         unquote(block)
       end
     end

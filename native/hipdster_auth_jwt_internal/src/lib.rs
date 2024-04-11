@@ -1,38 +1,91 @@
 use jwt_simple::prelude::*;
-use rustler::{Env, Term};
-use std::time::{SystemTime, UNIX_EPOCH};
+use rustler::{Binary, Encoder, Env, Term};
+use std::str;
 
-#[rustler::nif]
-fn generate_jwt(
-    account_did: String,
-    service_did: String,
-    key: &[u8],
-    is_k256: bool,
-) -> Result<String, &'static str> {
-    let key = if is_k256 {
-        ES256kKeyPair::from_bytes(key).map_err(|_| "Invalid K256 key")?
-    } else {
-        ES256KeyPair::from_bytes(key).map_err(|_| "Invalid P256 key")?
-    };
-
-    let mut claims = Claims::create(Duration::from_secs(60));
-    claims.issuer = Some(account_did);
-    claims.audience = Some(vec![service_did]);
-    claims.issued_at = Some(
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            .into(),
-    );
-
-    let token = if is_k256 {
-        key.sign(claims).map_err(|_| "Signing failed")?
-    } else {
-        key.sign(claims).map_err(|_| "Signing failed")?
-    };
-
-    Ok(token)
+mod atoms {
+    rustler::atoms! {
+        ok,
+        error,
+    }
 }
 
-rustler::init!("Elixir.Hipdster.Auth.JWT.Internal", [generate_jwt]);
+#[rustler::nif]
+fn generate_k256_jwt<'a>(
+    env: Env<'a>,
+    account_did: Binary<'a>,
+    service_did: Binary<'a>,
+    subject: Binary<'a>,
+    private_key: Binary<'a>,
+) -> Term<'a> {
+    let signing_key = match ES256kKeyPair::from_bytes(&private_key) {
+        Ok(key) => key,
+        Err(e) => {
+            return (
+                atoms::error(),
+                format!("Failed to create secret key: {}", e),
+            )
+                .encode(env)
+        }
+    };
+
+    let service_did_string = str::from_utf8(service_did.as_slice()).unwrap();
+    let account_did = str::from_utf8(account_did.as_slice()).unwrap();
+
+    let subject = str::from_utf8(subject.as_slice()).unwrap();
+
+    let claim = Claims::create(Duration::from_mins(1))
+        .with_issuer(account_did)
+        .with_audience(service_did_string);
+
+    let claim = match subject {
+        "" => claim,
+        s => claim.with_subject(s),
+    };
+    let token = match signing_key.sign(claim) {
+        Ok(token) => token,
+        Err(e) => return (atoms::error(), format!("Failed to sign token: {}", e)).encode(env),
+    };
+
+    let token = token.as_str();
+    (atoms::ok(), token).encode(env)
+}
+
+
+#[rustler::nif]
+fn generate_hs256_jwt<'a>(
+    env: Env<'a>,
+    account_did: Binary<'a>,
+    subject: Binary<'a>,
+    hs256_private_key: Binary<'a>,
+    time_in_minutes: i64,
+) -> Term<'a> {
+    let signing_key = HS256Key::from_bytes(&hs256_private_key);
+
+    let account_did = str::from_utf8(account_did.as_slice()).unwrap();
+    let subject = str::from_utf8(subject.as_slice()).unwrap();
+
+    let claim = Claims::create(Duration::from_mins(time_in_minutes as u64))
+        .with_issuer(account_did)
+        .with_subject(subject);
+
+    let token = match signing_key.authenticate(claim) {
+        Ok(token) => token,
+        Err(e) => return (atoms::error(), format!("Failed to sign token: {}", e)).encode(env),
+    };
+
+    let token = token.as_str();
+    (atoms::ok(), token).encode(env)
+}
+
+#[rustler::nif]
+fn verify_hs256_jwt<'a>(env: Env<'a>, jwt: Binary<'a>, hs256_privkey: Binary<'a>) -> Term<'a> {
+    let signing_key = HS256Key::from_bytes(&hs256_privkey);
+
+    match signing_key.verify_token::<NoCustomClaims>(str::from_utf8(jwt.as_slice()).unwrap(), None) {
+        Ok(token) => (atoms::ok(), token.subject).encode(env),
+        Err(_e) => (atoms::error(), "Failed to verify token" as &'a str).encode(env),
+    }
+}
+
+
+rustler::init!("Elixir.Hipdster.Auth.JWT.Internal", [generate_k256_jwt, generate_hs256_jwt, verify_hs256_jwt]);

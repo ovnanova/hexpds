@@ -3,11 +3,28 @@ defmodule Hipdster.Identity do
   Stuff like resolving a handle, fetching a DID, generating JWTs, etc
   """
 
+  import Hipdster.Helpers
+
+  @typedoc """
+  A string representing a DID in the format `did:plc:<hex>`
+  """
   @type did_plc :: <<_::256>>
+  @typedoc """
+  A string representing a DID in the format `did:web:<domain>`
+  """
   @type did_web :: String.t()
 
+  @typedoc """
+  A DID as a string
+  """
   @type did :: did_plc() | did_web()
 
+  @typedoc """
+  A handle as a string
+  """
+  @type handle :: String.t()
+
+  @spec resolve_handle(String.t()) :: {:ok, did()} | {:error, any()}
   def resolve_handle(domain) do
     lookup_did_by_dns(domain)
     |> case do
@@ -23,18 +40,10 @@ defmodule Hipdster.Identity do
     end
   end
 
+  @spec is_did?({:ok, did()}) :: {:ok, did()}
   def is_did?({:ok, "did:" <> _did} = arg), do: arg
+  @spec is_did?({:ok, any()}) :: {:error, not_a_did: any()}
   def is_did?({:ok, anything_else}), do: {:error, not_a_did: anything_else}
-
-  defmacrop handle_errors(do: block) do
-    quote do
-      try do
-        {:ok, unquote(block)}
-      rescue
-        error -> {:error, error}
-      end
-    end
-  end
 
   defp lookup_did_by_dns(domain) do
     handle_errors do

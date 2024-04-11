@@ -1,7 +1,6 @@
 defmodule Hipdster.Auth do
   @moduledoc """
   Authentication and session management
-  Should the database stuff for *users* specifically go here?
   """
 
   def generate_session(_, _username, _pw) do
@@ -19,5 +18,4 @@ defmodule Hipdster.Auth do
       _ -> false
     end
   end
-
 end
