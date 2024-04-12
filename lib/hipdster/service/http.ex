@@ -43,14 +43,19 @@ defmodule Hipdster.Http do
   end
 
   get "/xrpc/:method" do
-    conn = conn |> Plug.Conn.fetch_query_params()
-    params = for {key, val} <- conn.query_params, into: %{}, do: {String.to_atom(key), val}
+    conn = fetch_query_params(conn)
+
+    # If you're using a non-known query param you deserve that exception, hence String.to_existing_atom/1
+    params =
+      for {key, val} <- conn.query_params, into: %{}, do: {String.to_existing_atom(key), val}
+
+    context = get_context(conn)
 
     {statuscode, json_body} =
       try do
         # We can handle the method
         IO.puts("Got query: #{method} #{inspect(params)}")
-        xrpc_query(conn, method, params, :unauthenticated)
+        xrpc_query(conn, method, params, context)
       catch
         _, e_from_method ->
           try do
@@ -60,7 +65,8 @@ defmodule Hipdster.Http do
               :function_clause -> IO.inspect(e_from_method)
               _ -> throw(e_from_method)
             end
-            forward_query_to_appview(IO.inspect(appview_for(conn)), conn, method, params)
+
+            forward_query_to_appview(IO.inspect(appview_for(conn)), conn, method, params, context)
           catch
             _, e ->
               IO.inspect(e, label: "AppView proxying error")
@@ -69,7 +75,7 @@ defmodule Hipdster.Http do
                %{
                  error: "Error",
                  message: "Oh no! Bad request or internal server error",
-                 debug: inspect(e),
+                 debug: inspect(e)
                }}
           end
       end
@@ -79,36 +85,35 @@ defmodule Hipdster.Http do
         conn
         |> Plug.Conn.put_resp_content_type(blob.mime_type)
         |> Plug.Conn.send_resp(200, blob.data)
+
       _ ->
         send_resp(conn, statuscode, Jason.encode!(json_body))
     end
   end
 
   post "/xrpc/:method" do
-    {:ok, body, conn} = read_body(conn)
+    {:ok, body, _} = Plug.Conn.read_body(conn)
 
-    {statuscode, json_resp} =
-      try do
-        xrpc_procedure(conn, method, body, :unauthenticated)
-      catch
-        _, e ->
-          {500,
-           %{
-             error: "Error",
-             message: "Oh no! Bad request or internal server error: #{inspect(e)}",
-             debug: Jason.encode!(e)
-           }}
-      end
+    body =
+      for {key, val} <- Jason.decode!(body), into: %{}, do: {String.to_existing_atom(key), val}
 
-    send_resp(conn, statuscode, Jason.encode!(json_resp))
+    {statuscode, json_resp} = xrpc_procedure(conn, method, body, get_context(conn))
+
+    case json_resp do
+      {:blob, blob} ->
+        conn
+        |> Plug.Conn.put_resp_content_type(blob.mime_type)
+        |> Plug.Conn.send_resp(200, blob.data)
+
+      _ ->
+        send_resp(conn, statuscode, Jason.encode!(json_resp))
+    end
   end
 
-  defp appview_for(%Plug.Conn{} = c) do
-    url_of(
-      c.req_headers
-      |> Enum.into(%{})
-      |> Map.get("atproto-proxy")
-    ) || Application.get_env(:hipdster, :appview_server)
+  defp appview_for(%Plug.Conn{req_headers: r_h}) do
+    r_h
+    |> Enum.into(%{})
+    |> Map.get("atproto-proxy")
   end
 
   def url_of(nil), do: nil
@@ -131,23 +136,52 @@ defmodule Hipdster.Http do
     end
   end
 
-  defp forward_query_to_appview(appview, _conn, method, params) do
+  defp forward_query_to_appview(appview_did, _conn, method, params, context) do
     # Ignore auth for now
+
+    headers =
+      case context do
+        %{authed: true, user: %{did: did}} ->
+          [
+            Authorization:
+              "Bearer " <>
+                Hipdster.Auth.JWT.interservice!(did, appview_did)
+          ]
+
+        _ ->
+          []
+      end
+
     %{status_code: statuscode, body: json_body} =
-      ("https://" <> appview <> "/xrpc/" <> method <> "?" <> URI.encode_query(params))
-      |> HTTPoison.get!()
+      ("https://" <>
+         (url_of(appview_did) || Application.get_env(:hipdster, :appview_server)) <>
+         "/xrpc/" <> method <> "?" <> URI.encode_query(params))
+      |> HTTPoison.get!(headers)
 
     {statuscode, Jason.decode!(json_body)}
   end
 
-  @spec xrpc_query(Plug.Conn.t(), String.t(), map(), Hipdster.User.t() | :unauthenticated) :: {integer(), map() | {:blob, Hipdster.Blob.t()}}
-
-  # As soon as we got JWTs we can do this!!!
-  XRPC.query _, "app.bsky.actor.getPreferences", %{} do
-    {200, %{preferences: %{}}}
+  defp get_context(%Plug.Conn{req_headers: r_h}) do
+    r_h
+    |> Enum.into(%{})
+    |> Map.get("authorization")
+    |> Hipdster.Auth.Context.parse_header()
   end
 
-  XRPC.query _, "com.atproto.sync.getBlob", %{did: did, cid: cid} do
+  @spec xrpc_query(Plug.Conn.t(), String.t(), map(), Hipdster.Auth.Context.t()) ::
+          {integer(), map() | {:blob, Hipdster.Blob.t()}}
+
+  XRPC.query _, "app.bsky.actor.getPreferences", %{}, ctx do
+    case ctx do
+      %{user: %Hipdster.User{} = user, token_type: :access} ->
+        {200, %{preferences: user.data["preferences"]}}
+
+      _ ->
+        {401, %{error: "Unauthorized", message: "Not authorized"}}
+    end
+  end
+
+  XRPC.query _, "com.atproto.sync.getBlob", %{did: did, cid: cid}, _ do
     with %Hipdster.Blob{} = blob <- Hipdster.Blob.get(cid, did) do
       {200, {:blob, blob}}
     else
@@ -155,7 +189,7 @@ defmodule Hipdster.Http do
     end
   end
 
-  XRPC.query _, "com.atproto.sync.listBlobs", opts do
+  XRPC.query _, "com.atproto.sync.listBlobs", opts, _ do
     case Hipdster.Xrpc.Query.ListBlobs.list_blobs(
            opts[:did],
            opts[:since],
@@ -170,8 +204,44 @@ defmodule Hipdster.Http do
     end
   end
 
-  @spec xrpc_procedure(Plug.Conn.t(), String.t(), map(), Hipdster.User.t() | :unauthenticated) :: {integer(), map()}
-  XRPC.procedure c, "com.atproto.server.createSession", %{identifier: username, password: pw} do
-    {200, %{session: Hipdster.Auth.generate_session(c, username, pw)}}
+  XRPC.query _, "com.atproto.server.getSession", %{}, ctx do
+    case ctx do
+      %{user: %Hipdster.User{did: did, handle: handle}, token_type: :access} ->
+        {200, %{handle: handle, did: did}}
+
+      _ ->
+        {401, %{error: "Unauthorized", message: "Not authorized"}}
+    end
+  end
+
+  @spec xrpc_procedure(Plug.Conn.t(), String.t(), map(), Hipdster.Auth.Context.t()) ::
+          {integer(), map()}
+
+  XRPC.procedure c,
+                 "com.atproto.server.createSession",
+                 %{identifier: username, password: pw},
+                 _ do
+    {200, Hipdster.Auth.generate_session(c, username, pw)}
+  end
+
+  XRPC.procedure c, "com.atproto.server.refreshSession", _, ctx do
+    case ctx do
+      %{user: %Hipdster.User{did: did, handle: handle}, token_type: :refresh} ->
+        {200, Hipdster.Auth.generate_session(c, handle, did)}
+
+      _ ->
+        {401, %{error: "Unauthorized", message: "Not authorized"}}
+    end
+  end
+
+  XRPC.procedure _, "app.bsky.actor.putPreferences", %{preferences: prefs}, ctx do
+    case ctx do
+      %{user: %Hipdster.User{} = user, token_type: :access} ->
+        Hipdster.User.Preferences.put(user, prefs)
+        {200, {:blob, %{mime_type: "application/octet-stream", data: ""}}}
+
+      _ ->
+        {401, %{error: "Unauthorized", message: "Not authorized"}}
+    end
   end
 end

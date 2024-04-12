@@ -18,7 +18,9 @@ config :hipdster,
     :prod -> 3999
     :dev -> 4000
     :test -> 4001
-  end)
+  end),
+  # Example HS256 secret for access and refresh JWTs
+  jwt_key: <<16474290805911645537423060771945528686550823130298449174717469148262408363010::256>>
 
 config :hipdster, Hipdster.Database,
   # Replace with Postgres URL in production!

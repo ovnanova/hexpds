@@ -411,6 +411,7 @@ version = "0.1.0"
 dependencies = [
  "jwt-simple",
  "rustler",
+ "serde_json",
 ]
 
 [[package]]

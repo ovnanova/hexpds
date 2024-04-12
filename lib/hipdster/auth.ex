@@ -2,11 +2,26 @@ defmodule Hipdster.Auth do
   @moduledoc """
   Authentication and session management
   """
+alias Hipdster.User
 
-  def generate_session(_, _username, _pw) do
+  def generate_session(_, username, pw) do
+    if Hipdster.User.authenticate(username, pw) do
+      Hipdster.User.get(username)
+      |> generate_session()
+    else
+      %{
+        error: "AuthenticationRequired",
+        message: "Invalid identifier or password"
+      }
+    end
+  end
+
+  def generate_session(%User{handle: handle, did: did} = u) do
     %{
-      error: "MethodNotImplemented",
-      message: "Not implemented yet"
+      accessJwt: Hipdster.Auth.JWT.access_jwt(u, "main"),
+      refreshJwt: Hipdster.Auth.JWT.refresh_jwt(u, "main"),
+      handle: handle,
+      did: did
     }
   end
 

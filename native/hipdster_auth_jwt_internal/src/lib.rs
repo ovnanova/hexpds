@@ -56,10 +56,10 @@ fn generate_hs256_jwt<'a>(
     env: Env<'a>,
     account_did: Binary<'a>,
     subject: Binary<'a>,
-    hs256_private_key: Binary<'a>,
+    hs256_secret: Binary<'a>,
     time_in_minutes: i64,
 ) -> Term<'a> {
-    let signing_key = HS256Key::from_bytes(&hs256_private_key);
+    let signing_key = HS256Key::from_bytes(&hs256_secret);
 
     let account_did = str::from_utf8(account_did.as_slice()).unwrap();
     let subject = str::from_utf8(subject.as_slice()).unwrap();
@@ -78,13 +78,13 @@ fn generate_hs256_jwt<'a>(
 }
 
 #[rustler::nif]
-fn verify_hs256_jwt<'a>(env: Env<'a>, jwt: Binary<'a>, hs256_privkey: Binary<'a>) -> Term<'a> {
-    let signing_key = HS256Key::from_bytes(&hs256_privkey);
+fn verify_hs256_jwt<'a>(env: Env<'a>, jwt: Binary<'a>, hs256_secret: Binary<'a>) -> Term<'a> {
+    let signing_key = HS256Key::from_bytes(&hs256_secret);
 
     match signing_key.verify_token::<NoCustomClaims>(str::from_utf8(jwt.as_slice()).unwrap(), None) {
-        Ok(token) => (atoms::ok(), token.subject).encode(env),
-        Err(_e) => (atoms::error(), "Failed to verify token" as &'a str).encode(env),
-    }
+        Ok(token) => (atoms::ok(), token.serialize(serde_json::value::Serializer).unwrap().to_string()),
+        Err(e) => (atoms::error(), format!("Failed to verify token: {}", e)),
+    }.encode(env)
 }
 
 

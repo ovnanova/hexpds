@@ -3,17 +3,17 @@ defmodule Hipdster.XRPC do
   Just some macros to make the XRPC interface easier to write
   """
 
-  defmacro query(conn, method, params, [do: block]) do
+  defmacro query(conn, method, params, ctx, [do: block]) do
     quote do
-      def xrpc_query(unquote(conn), unquote(method), unquote(params), user) do
+      def xrpc_query(unquote(conn), unquote(method), unquote(params), unquote(ctx)) do
         unquote(block)
       end
     end
   end
 
-  defmacro procedure(conn, method, params, [do: block]) do
+  defmacro procedure(conn, method, params, ctx, [do: block]) do
     quote do
-      def xrpc_procedure(unquote(conn), unquote(method), unquote(params), user) do
+      def xrpc_procedure(unquote(conn), unquote(method), unquote(params), unquote(ctx)) do
         unquote(block)
       end
     end
