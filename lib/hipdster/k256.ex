@@ -28,7 +28,10 @@ defmodule Hipdster.K256 do
           %{pubkey: pubkey, __struct__: Hipdster.K256.PublicKey},
           message
         ) do
-      case Hipdster.K256.Internal.verify_signature(pubkey, message, sig) do
+      pubkey
+      |> Base.encode16()
+      |> Hipdster.K256.Internal.verify_signature(message, sig)
+      |> case do
         true -> {:ok, "Signature #{inspect(sig)} verified"}
         false -> {:error, "Signature #{inspect(sig)} could not be verified"}
         tuple -> tuple
@@ -110,7 +113,7 @@ defmodule Hipdster.K256 do
     @spec create(PrivateKey.t()) :: t()
     def create(%PrivateKey{privkey: privkey}) do
       case Hipdster.K256.Internal.create_public_key(privkey) do
-        {:ok, pubkey} -> from_binary(pubkey)
+        {:ok, pubkey} -> from_hex(pubkey)
         {:error, e} -> raise e
       end
     end
@@ -127,7 +130,9 @@ defmodule Hipdster.K256 do
     Wrapper around the `k256` crate's `k256::PublicKey::compress` function.
     """
     def compress(%__MODULE__{pubkey: pubkey}) do
-      case Hipdster.K256.Internal.compress_public_key(pubkey) do
+      Base.encode16(pubkey, case: :lower)
+      |> Hipdster.K256.Internal.compress_public_key()
+      |> case do
         {:ok, compressed} -> compressed
         {:error, e} -> raise e
       end

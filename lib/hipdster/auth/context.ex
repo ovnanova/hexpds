@@ -29,7 +29,7 @@ defmodule Hipdster.Auth.Context do
   def app_pwd?(%__MODULE__{is_app_pwd?: is_app_pwd?}), do: is_app_pwd?
 
   def parse_jwt(jwt, hs256_secret \\ Application.get_env(:hipdster, :jwt_key)) do
-    Hipdster.Auth.JWT.verify(jwt, hs256_secret)
+    Hipdster.Auth.Session.verify(jwt, hs256_secret)
     |> json_to_ctx()
   end
 

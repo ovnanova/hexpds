@@ -33,6 +33,7 @@ defmodule Hipdster.MixProject do
       {:toml, "~> 0.7.0"},
       {:varint, "~> 1.4"},
       {:plug, "~> 1.15.3"},
+      {:cors_plug, "~> 3.0"},
       {:bandit, "~> 1.3.0"},
       {:argon2_elixir, "~> 4.0"},
       {:memento, "~> 0.3.2"},

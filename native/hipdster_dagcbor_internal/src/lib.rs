@@ -3,8 +3,7 @@ use rustler::Env;
 use rustler::NifResult;
 use rustler::Term;
 use rustler::Binary;
-use serde_json::from_str;
-use serde_json::Value;
+use serde_json::Value as JsonValue;
 use serde_json::json;
 use libipld::Ipld;
 use libipld::Cid;
@@ -23,12 +22,12 @@ mod atoms {
 }
 
 // taken from bnewbold/adenosine (https://gitlab.com/bnewbold/adenosine)
-pub fn json_to_ipld(val: Value) -> Ipld {
+pub fn json_to_ipld(val: JsonValue) -> Ipld {
     match val {
-        Value::Null => Ipld::Null,
-        Value::Bool(b) => Ipld::Bool(b),
-        Value::String(s) => Ipld::String(s),
-        Value::Number(v) => {
+        JsonValue::Null => Ipld::Null,
+        JsonValue::Bool(b) => Ipld::Bool(b),
+        JsonValue::String(s) => Ipld::String(s),
+        JsonValue::Number(v) => {
             if let Some(f) = v.as_f64() {
                 if v.is_i64() {
                     Ipld::Integer(v.as_i64().unwrap().into())
@@ -41,8 +40,8 @@ pub fn json_to_ipld(val: Value) -> Ipld {
                 Ipld::Null
             }
         },
-        Value::Array(l) => Ipld::List(l.into_iter().map(json_to_ipld).collect()),
-        Value::Object(m) => {
+        JsonValue::Array(l) => Ipld::List(l.into_iter().map(json_to_ipld).collect()),
+        JsonValue::Object(m) => {
             let map: BTreeMap<String, Ipld> = BTreeMap::from_iter(m.into_iter().map(|(k, v)| {
                 if k == "cid" && v.is_string() {
                     (k, Ipld::Link(Cid::from_str(v.as_str().unwrap()).unwrap()))
@@ -56,26 +55,26 @@ pub fn json_to_ipld(val: Value) -> Ipld {
 }
 
 // Taken from bnewbold/adenosine
-pub fn ipld_to_json(val: Ipld) -> Value {
+pub fn ipld_to_json(val: Ipld) -> JsonValue {
     match val {
-        Ipld::Null => Value::Null,
-        Ipld::Bool(b) => Value::Bool(b),
+        Ipld::Null => JsonValue::Null,
+        Ipld::Bool(b) => JsonValue::Bool(b),
         Ipld::Integer(v) => json!(v),
         Ipld::Float(v) => json!(v),
-        Ipld::String(s) => Value::String(s),
-        Ipld::Bytes(b) => Value::String(BASE64_NOPAD.encode(&b)),
-        Ipld::List(l) => Value::Array(l.into_iter().map(ipld_to_json).collect()),
-        Ipld::Map(m) => Value::Object(serde_json::Map::from_iter(
+        Ipld::String(s) => JsonValue::String(s),
+        Ipld::Bytes(b) => JsonValue::String(BASE64_NOPAD.encode(&b)),
+        Ipld::List(l) => JsonValue::Array(l.into_iter().map(ipld_to_json).collect()),
+        Ipld::Map(m) => JsonValue::Object(serde_json::Map::from_iter(
             m.into_iter().map(|(k, v)| (k, ipld_to_json(v))),
         )),
-        Ipld::Link(c) => Value::String(c.to_string()),
+        Ipld::Link(c) => JsonValue::String(c.to_string()),
     }
 }
 
 
 #[rustler::nif]
 fn encode_dag_cbor(env: Env, json: String) -> NifResult<Term> {
-    let parsed_json: serde_json::Value = match from_str(&json) {
+    let parsed_json: JsonValue = match serde_json::from_str(&json) {
         Ok(json) => json,
         Err(e) => return Ok((atoms::error(), format!("Failed to parse JSON: {}", e)).encode(env)),
     };
@@ -116,12 +115,10 @@ fn decode_dag_cbor<'a>(env: Env<'a>, cbor_data: Binary<'a>) -> Term<'a> {
 
     let json = ipld_to_json(decoded_cbor);
 
-    let json_string = match serde_json::to_string(&json) {
-        Ok(string) => string,
+    match serde_json::to_string(&json) {
+        Ok(string) => (atoms::ok(), string).encode(env),
         Err(e) => return (atoms::error(), format!("Failed to serialize JSON: {}", e)).encode(env),
-    };
-
-    (atoms::ok(), json_string).encode(env)
+    }
 }
 
 rustler::init!("Elixir.Hipdster.DagCBOR.Internal", [encode_dag_cbor, decode_dag_cbor]);
