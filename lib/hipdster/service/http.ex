@@ -16,12 +16,11 @@ defmodule Hipdster.Http do
     json_decoder: Jason
   )
 
-
   options "/xrpc/:any" do
     conn
     |> put_resp_header("access-control-allow-origin", "*")
     |> put_resp_header("access-control-allow-methods", "GET,HEAD,PUT,PATCH,POST,DELETE")
-    |> put_resp_header("access-control-allow-headers", "atproto-accept-labelers,authorization")
+    |> put_resp_header("access-control-allow-headers", "atproto-accept-labelers,authorization,content-type")
     |> put_resp_header("access-control-max-age", "86400")
     |> put_resp_header("content-length", "0")
     |> send_resp(204, "")
@@ -56,7 +55,7 @@ defmodule Hipdster.Http do
   get "/xrpc/:method" do
     conn = fetch_query_params(conn)
 
-    IO.inspect conn
+    IO.inspect(conn)
 
     # If you're using a non-known query param you deserve that exception, hence String.to_existing_atom/1
     params =
@@ -68,8 +67,9 @@ defmodule Hipdster.Http do
       try do
         # We can handle the method
         IO.puts("Got query: #{method} #{inspect(params)}")
+
         xrpc_query(conn, method, params, context)
-        |> IO.inspect
+        |> IO.inspect()
       catch
         _, e_from_method ->
           try do
@@ -105,11 +105,8 @@ defmodule Hipdster.Http do
       _ ->
         conn
         |> Plug.Conn.put_resp_content_type("application/json")
-        |> Plug.Conn.resp(statuscode, Jason.encode!(json_body))
-        |> IO.inspect()
-        |> Plug.Conn.send_resp()
-        |> Plug.Conn.halt()
-        |> IO.inspect()
+        |> Plug.Conn.put_resp_header("access-control-allow-origin", "*")
+        |> Plug.Conn.send_resp(statuscode, Jason.encode!(json_body))
     end
   end
 
@@ -128,7 +125,10 @@ defmodule Hipdster.Http do
         |> Plug.Conn.send_resp(200, blob.data)
 
       _ ->
-        send_resp(conn, statuscode, Jason.encode!(json_resp))
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.put_resp_header("access-control-allow-origin", "*")
+        |> Plug.Conn.send_resp(statuscode, Jason.encode!(json_resp))
     end
   end
 
@@ -238,10 +238,13 @@ defmodule Hipdster.Http do
 
   XRPC.query _, "com.atproto.server.describeServer", _, _ do
     IO.puts("Describing server...")
-    {200, %{
-      availableUserDomains: "abyss.computer",   # These will all change, obviously
-      did: "did:web:abyss.computer",
-    }}
+
+    {200,
+     %{
+       # These will all change, obviously
+       availableUserDomains: ["localhost"],
+       did: "did:web:localhost"
+     }}
   end
 
   @spec xrpc_procedure(Plug.Conn.t(), String.t(), map(), Hipdster.Auth.Context.t()) ::
@@ -266,6 +269,7 @@ defmodule Hipdster.Http do
               %{} = session -> {200, session}
               _ -> {400, %{error: "InvalidToken", message: "Refresh session failed"}}
             end
+
           _ ->
             {400, %{error: "InvalidToken", message: "Refresh session failed"}}
         end
@@ -285,6 +289,7 @@ defmodule Hipdster.Http do
           :ok -> {200, %{}}
           _ -> {401, %{error: "InvalidToken", message: "Delete session failed"}}
         end
+
       _ ->
         {401, %{error: "InvalidToken", message: "Delete session failed"}}
     end
