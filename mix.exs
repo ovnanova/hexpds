@@ -42,7 +42,8 @@ defmodule Hipdster.MixProject do
       {:ecto_sqlite3, "~> 0.15"},
       {:matcha, "~> 0.1.10"},
       {:witchcraft, "~> 1.0.4"},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}, # type checking
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}, # for linting
     ]
   end
 end

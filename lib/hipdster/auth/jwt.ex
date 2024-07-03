@@ -1,5 +1,9 @@
 defmodule Hipdster.Auth.JWT do
+  @moduledoc """
+  JWT generation and verification
+  """
   defmodule Internal do
+    @moduledoc false
     use Rustler, otp_app: :hipdster, crate: "hipdster_auth_jwt_internal"
 
     import Hipdster.Helpers

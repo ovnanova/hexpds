@@ -4,9 +4,9 @@ import Config
 #  Application.get_env(:hipdster, :plc_server)
 
 config :hipdster,
-  plc_server: "plc.bsky-sandbox.dev",
+  plc_server: "plc.directory",
   appview_server: "public.api.bsky.app",
-  relay_server: "bgs.bsky-sandbox.dev",
+  relay_server: "bsky.network",
   # ignore pls for now
   pds_host: "abyss.computer",
   multicodec_csv_path: "multicodec.csv",

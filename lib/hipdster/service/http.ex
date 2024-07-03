@@ -55,11 +55,10 @@ defmodule Hipdster.Http do
   get "/xrpc/:method" do
     conn = fetch_query_params(conn)
 
-    IO.inspect(conn)
-
     # If you're using a non-known query param you deserve that exception, hence String.to_existing_atom/1
+    # Ignore above comment. Have to use to_atom/1 because of appview proxying which involves inherently unknown routes
     params =
-      for {key, val} <- conn.query_params, into: %{}, do: {String.to_existing_atom(key), val}
+      for {key, val} <- conn.query_params, into: %{}, do: {String.to_atom(key), val}
 
     context = get_context(conn)
 
@@ -114,7 +113,7 @@ defmodule Hipdster.Http do
     {:ok, body, _} = Plug.Conn.read_body(conn)
 
     body =
-      for {key, val} <- Jason.decode!(body), into: %{}, do: {String.to_existing_atom(key), val}
+      for {key, val} <- Jason.decode!(body), into: %{}, do: {String.to_atom(key), val}
 
     {statuscode, json_resp} = xrpc_procedure(conn, method, body, get_context(conn))
 

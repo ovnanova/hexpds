@@ -18,7 +18,6 @@ defmodule Hipdster.K256 do
     def create(sig), do: %__MODULE__{sig: sig}
 
     def bytes(%__MODULE__{sig: sig}), do: sig
-    # TODO: make this unnecessary
     def bytes({:error, e}), do: raise(e)
 
     @spec verify(t(), Hipdster.K256.PublicKey.t(), binary()) ::
