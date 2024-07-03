@@ -1,12 +1,10 @@
-use hex;
 use k256::ecdsa::signature::Signer;
+use k256::ecdsa::signature::Verifier;
 use k256::elliptic_curve::sec1::ToEncodedPoint;
 use rustler::Binary;
 use rustler::Encoder;
 use rustler::Env;
 use rustler::Term;
-use k256::ecdsa::signature::Verifier;
-
 
 mod atoms {
     rustler::atoms! {
@@ -118,7 +116,6 @@ fn verify_signature<'a>(
         Err(e) => return (atoms::error(), format!("Failed to parse signature: {}", e)).encode(env),
     };
 
-
     let verifying_key = k256::ecdsa::VerifyingKey::from(public_key);
     let verified = verifying_key.verify(message.as_slice(), &signature);
 
@@ -127,5 +124,10 @@ fn verify_signature<'a>(
 
 rustler::init!(
     "Elixir.Hipdster.K256.Internal",
-    [create_public_key, compress_public_key, sign_message, verify_signature]
+    [
+        create_public_key,
+        compress_public_key,
+        sign_message,
+        verify_signature
+    ]
 );

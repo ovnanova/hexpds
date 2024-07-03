@@ -1,18 +1,17 @@
+use data_encoding::BASE64_NOPAD;
+use libipld::cbor::DagCborCodec;
+use libipld::codec::Codec;
+use libipld::Cid;
+use libipld::Ipld;
+use rustler::Binary;
 use rustler::Encoder;
 use rustler::Env;
 use rustler::NifResult;
 use rustler::Term;
-use rustler::Binary;
-use serde_json::Value as JsonValue;
 use serde_json::json;
-use libipld::Ipld;
-use libipld::Cid;
-use libipld::codec::Codec;
-use libipld::cbor::DagCborCodec;
+use serde_json::Value as JsonValue;
 use std::collections::BTreeMap;
 use std::str::FromStr;
-use data_encoding::BASE64_NOPAD;
-
 
 mod atoms {
     rustler::atoms! {
@@ -32,14 +31,14 @@ pub fn json_to_ipld(val: JsonValue) -> Ipld {
                 if v.is_i64() {
                     Ipld::Integer(v.as_i64().unwrap().into())
                 } else if v.is_u64() {
-                    Ipld::Integer(v.as_i64().unwrap_or_else(|| f as i64).into())
+                    Ipld::Integer(v.as_i64().unwrap_or(f as i64).into())
                 } else {
                     Ipld::Float(f)
                 }
             } else {
                 Ipld::Null
             }
-        },
+        }
         JsonValue::Array(l) => Ipld::List(l.into_iter().map(json_to_ipld).collect()),
         JsonValue::Object(m) => {
             let map: BTreeMap<String, Ipld> = BTreeMap::from_iter(m.into_iter().map(|(k, v)| {
@@ -71,7 +70,6 @@ pub fn ipld_to_json(val: Ipld) -> JsonValue {
     }
 }
 
-
 #[rustler::nif]
 fn encode_dag_cbor(env: Env, json: String) -> NifResult<Term> {
     let parsed_json: JsonValue = match serde_json::from_str(&json) {
@@ -93,9 +91,13 @@ fn encode_dag_cbor(env: Env, json: String) -> NifResult<Term> {
             }
 
             Ok((atoms::ok(), binary.release(env)).encode(env))
-        },
+        }
         Err(e) => {
-            return Ok((atoms::error(), format!("Failed to encode to DAG-CBOR: {}", e)).encode(env));
+            return Ok((
+                atoms::error(),
+                format!("Failed to encode to DAG-CBOR: {}", e),
+            )
+                .encode(env));
         }
     }
 }
@@ -121,4 +123,7 @@ fn decode_dag_cbor<'a>(env: Env<'a>, cbor_data: Binary<'a>) -> Term<'a> {
     }
 }
 
-rustler::init!("Elixir.Hipdster.DagCBOR.Internal", [encode_dag_cbor, decode_dag_cbor]);
+rustler::init!(
+    "Elixir.Hipdster.DagCBOR.Internal",
+    [encode_dag_cbor, decode_dag_cbor]
+);
