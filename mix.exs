@@ -29,9 +29,21 @@ defmodule Hipdster.MixProject do
       {:ex_doc, "~> 0.28.0", only: :dev, runtime: false},
       {:multibase, "~> 0.0.1"},
       {:ex_multihash, "~> 2.0.0"},
-      {:rustler, "~> 0.31.0"},
+      {:rustler, "~> 0.32"},
       {:toml, "~> 0.7.0"},
       {:varint, "~> 1.4"},
+      {:plug, "~> 1.15.3"},
+      {:cors_plug, "~> 3.0"},
+      {:bandit, "~> 1.3.0"},
+      {:argon2_elixir, "~> 4.0"},
+      {:memento, "~> 0.3.2"},
+      {:infer, "~> 0.2.6"},
+      {:ecto, "~> 3.11.2"},
+      {:ecto_sqlite3, "~> 0.15"},
+      {:matcha, "~> 0.1.10"},
+      {:witchcraft, "~> 1.0.4"},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}, # type checking
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}, # for linting
     ]
   end
 end

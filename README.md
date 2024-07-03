@@ -1,20 +1,24 @@
 # hipdster
 An ATProto PDS in Elixir/Rust
 
-## Installation
+## The current state of things
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `hipdster` to your list of dependencies in `mix.exs`:
+As of right now, this is not in a state where it can be used yet.
 
-```elixir
-def deps do
-  [
-    {:hipdster, "~> 0.1.0"}
-  ]
-end
-```
+Statuses for various components:
+   - Identity resolution - more or less complete
+   - cryptographic key generation, signing, and validation - complete (secp256k1 only)
+   - DID PLC operation signing (CBOR) - creates complete, probably easy to add updates from here
+   - transforming between JSON and CBOR - complete
+   - Lexicon validation - not currently planned
+   - MST - started
+   - Firehose - not started
+   - TID generation (and decoding!!) - complete
+   - blobs - getBlob, listBlobs - uploadBlob held up by auth/jwt
+   - service proxy header - parses and finds service URL
+   - inter-service auth - need JWT stuff
+   - preferences - almost ready to start
+   - anything moderation-related - not started
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/hipdster>.
+
 

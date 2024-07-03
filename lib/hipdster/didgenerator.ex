@@ -18,24 +18,6 @@ defmodule Hipdster.DidGenerator do
              |> String.downcase()
   end
 
-  @spec publish_to_plc(map(), String.t()) ::
-          {:error,
-           %{
-             :__exception__ => true,
-             :__struct__ => Jason.EncodeError | Protocol.UndefinedError,
-             optional(atom()) => any()
-           }}
-          | %{
-              :__struct__ =>
-                HTTPoison.AsyncResponse | HTTPoison.MaybeRedirect | HTTPoison.Response,
-              optional(:body) => any(),
-              optional(:headers) => list(),
-              optional(:id) => reference(),
-              optional(:redirect_url) => any(),
-              optional(:request) => HTTPoison.Request.t(),
-              optional(:request_url) => any(),
-              optional(:status_code) => integer()
-            }
   def publish_to_plc(
         %{"type" => "plc_operation", "prev" => nil} = signed_genesis,
         "https://" <> plc_url

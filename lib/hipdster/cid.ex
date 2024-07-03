@@ -665,7 +665,6 @@ defmodule Hipdster.CID do
         {:error, :unsupported_conversion}
 
   """
-  @spec to_version(t(), cid_version()) :: t()
   def to_version(cid, destination_version) when is_map(cid) and is_integer(destination_version) and destination_version <= @current_version do
     convert_version(cid, destination_version)
   end
@@ -758,4 +757,7 @@ defmodule Hipdster.CID do
     end
   end
 
+  defimpl String.Chars, for: CID do
+    def to_string(cid), do: CID.encode!(cid, :base32_lower)
+  end
 end

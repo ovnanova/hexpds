@@ -25,6 +25,16 @@ hipdster-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 *.so
+auth.ets
+.mnesia/
+
+# Cargo build output
+/target/
+
+# SQLite
+pds
+pds-shm
+pds-wal
 
 # Cargo build output
 /target/

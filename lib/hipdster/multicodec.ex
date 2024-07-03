@@ -1,6 +1,8 @@
 defmodule Hipdster.Multicodec do
   use GenServer
 
+  alias Matcha.Table.ETS
+  require ETS
   @moduledoc """
   # Multicodec
   [Multicodec](https://github.com/multiformats/multicodec) is one of the Multiformats used in IPFS and,
@@ -27,7 +29,7 @@ defmodule Hipdster.Multicodec do
 
   @type multi_codec() :: any()
 
-  def start_link(multicodec_csv \\ Application.get_env(:hipdster, :multicodec_csv_path)) do
+  def start_link(multicodec_csv) do
     GenServer.start_link(__MODULE__, multicodec_csv, name: __MODULE__)
   end
 
@@ -36,12 +38,9 @@ defmodule Hipdster.Multicodec do
     {:ok,
      csv_path
      |> File.stream!()
-     |> read_csv()}
-  end
-
-  @impl GenServer
-  def handle_call(:multicodec_map, _from, state) do
-    {:reply, state, state}
+     |> read_csv()
+     |> load_into_ets()
+    }
   end
 
   @doc """
@@ -56,23 +55,31 @@ defmodule Hipdster.Multicodec do
     end)
   end
 
-  @spec multicodec_map() :: map()
-  @doc """
-  Returns a map of multicodec names to integer codes.
-  """
-  def multicodec_map() do
-    GenServer.call(__MODULE__, :multicodec_map)
+  defp load_into_ets(multicodec_map) do
+    tab = :ets.new(__MODULE__, [:set, :public, :named_table])
+    for {codec, code} <- multicodec_map do
+      :ets.insert(__MODULE__, {codec, code})
+    end
+    tab
   end
 
-  @spec bytes_to_codec() :: map()
+
+  @spec bytes_to_codec(integer()) :: atom() | []
   @doc """
-  Returns a map of integer codes to multicodec names.
-  Basically the opposite of `multicodec_map()`.
+  For the given integer code, returns the codec name.
   """
-  def bytes_to_codec() do
-    for {codec, bytes} <- multicodec_map(), into: %{} do
-      {bytes, codec}
+  def bytes_to_codec(bytes) do
+    ETS.select __MODULE__ do
+      {codec, code} when code == bytes -> codec
     end
+    |> List.first
+  end
+
+  def codec_to_bytes(codec) do
+    ETS.select __MODULE__ do
+      {codec, code} when codec == codec -> code
+    end
+    |> List.first
   end
 
   @doc """
@@ -81,9 +88,7 @@ defmodule Hipdster.Multicodec do
   """
   def encode!(bytes, "" <> codec) do
     <<Varint.LEB128.encode(
-        multicodec_map()[
-          String.to_atom(codec)
-        ]
+        codec_to_bytes(String.to_atom(codec))
       )::binary, bytes::binary>>
   end
 
@@ -112,7 +117,7 @@ defmodule Hipdster.Multicodec do
   def codec_decode("" <> encoded) do
     try do
       with {prefix, rest} <- Varint.LEB128.decode(<<encoded::binary>>),
-           codec <- bytes_to_codec()[prefix],
+           codec when is_atom(codec) <- bytes_to_codec(prefix),
            do: {:ok, {rest, to_string(codec)}}
     catch
       _, e -> {:error, e}
@@ -124,7 +129,7 @@ defmodule Hipdster.Multicodec do
   """
   @spec codec?(binary()) :: boolean()
   def codec?("" <> codec) do
-    Map.has_key?(multicodec_map(), String.to_atom(codec))
+    :ets.member(__MODULE__, String.to_atom(codec))
   end
 
   @doc """
@@ -132,8 +137,8 @@ defmodule Hipdster.Multicodec do
   """
   @spec codecs() :: [String.t()]
   def codecs do
-    multicodec_map()
-    |> Map.keys()
+    :ets.tab2list(__MODULE__)
+    |> Stream.map(&elem(&1, 0))
     |> Enum.map(&to_string/1)
   end
 end
