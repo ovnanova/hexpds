@@ -35,3 +35,6 @@ auth.ets
 pds
 pds-shm
 pds-wal
+
+# Cargo build output
+/target/
