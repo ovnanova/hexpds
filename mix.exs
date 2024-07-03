@@ -1,9 +1,9 @@
-defmodule Hipdster.MixProject do
+defmodule Hexpds.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :hipdster,
+      app: :hexpds,
       version: "0.1.0",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
@@ -15,7 +15,7 @@ defmodule Hipdster.MixProject do
   def application do
     [
       extra_applications: [:logger, :crypto],
-      mod: {Hipdster.Application, []}
+      mod: {Hexpds.Application, []}
     ]
   end
 
@@ -42,8 +42,10 @@ defmodule Hipdster.MixProject do
       {:ecto_sqlite3, "~> 0.15"},
       {:matcha, "~> 0.1.10"},
       {:witchcraft, "~> 1.0.4"},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}, # type checking
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}, # for linting
+      # type checking
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      # for linting
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 end

@@ -6,12 +6,13 @@ defmodule Mix.Tasks.DidPlc.Generate do
   """
 
   use Mix.Task
-  alias Hipdster.DidGenerator
+  alias Hexpds.DidGenerator
 
   @shortdoc "Generate a DID:PLC: and publish it to the PLC server set in config/config.exs - pass in a handle"
   @impl Mix.Task
   def run([handle | _]) do
-    Application.ensure_all_started(:hipdster)
+    Application.ensure_all_started(:hexpds)
+
     handle
     |> DidGenerator.generate_did()
     |> inspect(pretty: true)

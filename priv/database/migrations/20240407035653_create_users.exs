@@ -1,4 +1,4 @@
-defmodule Hipdster.Database.Migrations.CreateUsers do
+defmodule Hexpds.Database.Migrations.CreateUsers do
   use Ecto.Migration
 
   def change do

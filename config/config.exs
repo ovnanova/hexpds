@@ -1,9 +1,9 @@
 import Config
 
 # example usage:
-#  Application.get_env(:hipdster, :plc_server)
+#  Application.get_env(:hexpds, :plc_server)
 
-config :hipdster,
+config :hexpds,
   plc_server: "plc.directory",
   appview_server: "public.api.bsky.app",
   relay_server: "bsky.network",
@@ -13,16 +13,18 @@ config :hipdster,
   admin_password: "admin",
   # or Ecto.Adapters.Postgres in production
   ecto_adapter: Ecto.Adapters.SQLite3,
-  ecto_repos: [Hipdster.Database],
-  port: (case Mix.env do
-    :prod -> 3999
-    :dev -> 4000
-    :test -> 4001
-  end),
+  ecto_repos: [Hexpds.Database],
+  port:
+    (case Mix.env() do
+       :prod -> 3999
+       :dev -> 4000
+       :test -> 4001
+     end),
   # Example HS256 secret for access and refresh JWTs
-  jwt_key: <<16474290805911645537423060771945528686550823130298449174717469148262408363010::256>>
+  jwt_key:
+    <<16_474_290_805_911_645_537_423_060_771_945_528_686_550_823_130_298_449_174_717_469_148_262_408_363_010::256>>
 
-config :hipdster, Hipdster.Database,
+config :hexpds, Hexpds.Database,
   # Replace with Postgres URL in production!
   url: "sqlite3:///pds"
 

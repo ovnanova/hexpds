@@ -1,0 +1,18 @@
+[package]
+name = "hexpds_dagcbor_internal"
+version = "0.1.0"
+authors = ["NetWatchInc"]
+edition = "2021"
+
+[lib]
+name = "hexpds_dagcbor_internal"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+libipld = "0.16.0"
+rustler = "0.33.0"
+data-encoding = "2.5.0"
+serde_json = "1.0.113"
+[features]
+"preserve_order" = []

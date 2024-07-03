@@ -15,7 +15,6 @@ defmodule Mix.Tasks.Mnesia.Setup do
     Memento.Schema.create(@nodes)
     Memento.start()
 
-
-    Enum.each(Hipdster.Database.Mnesia.tables(), &Memento.Table.create(&1, disc_copies: @nodes))
+    Enum.each(Hexpds.Database.Mnesia.tables(), &Memento.Table.create(&1, disc_copies: @nodes))
   end
 end

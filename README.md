@@ -1,4 +1,4 @@
-# hipdster
+# hexPDS
 An ATProto PDS in Elixir/Rust
 
 ## The current state of things

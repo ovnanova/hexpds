@@ -1,4 +1,4 @@
-defmodule Hipdster.Database.Migrations.AddPaginationIndexes do
+defmodule Hexpds.Database.Migrations.AddPaginationIndexes do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule Hipdster.Database.Migrations.CreateBlobs do
+defmodule Hexpds.Database.Migrations.CreateBlobs do
   use Ecto.Migration
 
   def change do

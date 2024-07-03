@@ -1,2 +1,2 @@
-Application.ensure_all_started(:hipdster)
+Application.ensure_all_started(:hexpds)
 ExUnit.start()

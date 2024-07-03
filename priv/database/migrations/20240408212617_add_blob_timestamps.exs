@@ -1,4 +1,4 @@
-defmodule Hipdster.Database.Migrations.AddBlobTimestamps do
+defmodule Hexpds.Database.Migrations.AddBlobTimestamps do
   use Ecto.Migration
 
   def change do
