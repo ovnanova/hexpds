@@ -1,5 +1,29 @@
 defmodule Hexpds.DidPlc do
+  defmodule Services do
+    defmodule AtprotoPds do
+      @type t :: %__MODULE__{endpoint: String.t(), type: String.t()}
+      @derive Jason.Encoder
+      defstruct [:endpoint, type: "AtprotoPersonalDataServer"]
+    end
+
+    @derive Jason.Encoder
+    defstruct [:atproto_pds]
+
+    @type t :: %__MODULE__{atproto_pds: AtprotoPds.t()}
+
+    defmodule AtprotoPds do
+      @type t :: %__MODULE__{endpoint: String.t(), type: String.t()}
+      @derive Jason.Encoder
+      defstruct [:endpoint, type: "AtprotoPersonalDataServer"]
+    end
+  end
+
   defmodule Operation do
+    defmodule VerificationMethods do
+      defstruct([:atproto])
+      @type t :: %__MODULE__{atproto: Hexpds.K256.PrivateKey.t()}
+    end
+
     defstruct [
       :rotationKeys,
       :prev,
@@ -17,23 +41,6 @@ defmodule Hexpds.DidPlc do
             services: Services.t(),
             type: String.t()
           }
-
-    defmodule VerificationMethods do
-      defstruct([:atproto])
-      @type t :: %__MODULE__{atproto: Hexpds.K256.PrivateKey.t()}
-    end
-
-    defmodule Services do
-      @type t :: %__MODULE__{atproto_pds: AtprotoPds.t()}
-      @derive Jason.Encoder
-      defstruct [:atproto_pds]
-
-      defmodule AtprotoPds do
-        @type t :: %__MODULE__{endpoint: String.t(), type: String.t()}
-        @derive Jason.Encoder
-        defstruct [:endpoint, type: "AtprotoPersonalDataServer"]
-      end
-    end
 
     def genesis(
           %Hexpds.K256.PrivateKey{} = rotationkey,

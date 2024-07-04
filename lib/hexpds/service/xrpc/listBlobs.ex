@@ -30,9 +30,13 @@ defmodule Hexpds.Xrpc.Query.ListBlobs do
       end
       |> Hexpds.Database.all()
 
-    %{
-      cids: cids,
-      cursor: to_string(List.last(cids))
-    }
+    unless Hexpds.User.get(did) do
+      %{}
+    else
+      %{
+        cids: cids,
+        cursor: to_string(List.last(cids))
+      }
+    end
   end
 end

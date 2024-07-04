@@ -1,5 +1,4 @@
 defmodule Hexpds.MST do
-  alias Hexpds.MST
   alias Hexpds.MST.MSTNode, as: MSTNode
   @hash_fun :sha256
 
@@ -77,6 +76,7 @@ end
 defmodule Hexpds.MSTServer do
   use GenServer
   alias Hexpds.MST.MSTNode, as: MSTNode
+  @hash_fun :sha256
 
   # Starting the server with an empty root
   @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}

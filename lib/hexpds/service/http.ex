@@ -223,8 +223,8 @@ defmodule Hexpds.Http do
       %{cids: cids, cursor: next_cursor} ->
         {200, %{cursor: next_cursor, cids: Enum.map(cids, &to_string/1)}}
 
-      other ->
-        {400, %{error: "InvalidRequest", message: inspect(other)}}
+      _ ->
+        {400, %{error: "InvalidRequest", message: "Unknown user."}}
     end
   end
 
@@ -250,7 +250,7 @@ defmodule Hexpds.Http do
   end
 
   @spec xrpc_procedure(Plug.Conn.t(), String.t(), map(), Hexpds.Auth.Context.t()) ::
-          {integer(), map()}
+          {integer(), map() | {:blob, Hexpds.Blob.t()}}
 
   XRPC.procedure _,
                  "com.atproto.server.createSession",

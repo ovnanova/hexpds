@@ -20,7 +20,7 @@ defmodule Hexpds.Auth.Session.Cleaner do
     Memento.transaction!(fn ->
       :mnesia.foldl(
         fn {_, r_jwt, _, _}, _ ->
-          unless Hexpds.Auth.JWT.verify(r_jwt) do
+          unless is_map(Hexpds.Auth.JWT.verify(r_jwt)) do
             Hexpds.Auth.Session.delete(r_jwt)
           end
         end,

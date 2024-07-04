@@ -409,9 +409,6 @@ defmodule Hexpds.CID do
     with {:ok, encoded_multihash} <- Multicodec.encode(multihash, codec),
          encoded_version = Varint.LEB128.encode(version) do
       {:ok, <<encoded_version::binary, encoded_multihash::binary>>}
-    else
-      {:error, _reason} = err -> err
-      _ -> {:error, "unable to encode buffer."}
     end
   end
 
