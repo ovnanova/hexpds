@@ -4,7 +4,7 @@ defmodule Hexpds.BlockStore do
   @callback del_block(key :: binary()) :: :ok | {:error, term()}
 end
 
-defmodule BlocksTable do
+defmodule Hexpds.BlocksTable do
   use Ecto.Schema
 
   schema "blocks" do
@@ -15,6 +15,7 @@ end
 
 defmodule Hexpds.EctoBlockStore do
   import Ecto.Query
+  alias Hexpds.BlocksTable
   @behaviour Hexpds.BlockStore
 
   def init(_type, config) do

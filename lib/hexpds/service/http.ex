@@ -121,14 +121,7 @@ defmodule Hexpds.Http do
     {statuscode, json_resp} = xrpc_procedure(conn, method, body, get_context(conn))
 
     case json_resp do
-      %{
-        accessJwt: _accessJwt,
-        did: _did,
-        error: _error,
-        handle: _handle,
-        message: _message,
-        refreshJwt: _refreshJwt
-      } = blob ->
+      {:blob, blob} ->
         conn
         |> Plug.Conn.put_resp_content_type(blob.mime_type)
         |> Plug.Conn.send_resp(200, blob.data)
