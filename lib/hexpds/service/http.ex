@@ -301,7 +301,7 @@ defmodule Hexpds.Http do
     case ctx do
       %{user: %Hexpds.User{} = user, token_type: :access} ->
         Hexpds.User.Preferences.put(user, prefs)
-        {200, {:blob, %{mime_type: "application/octet-stream", data: ""}}}
+        {200, XRPC.blank}
 
       _ ->
         {401, %{error: "Unauthorized", message: "Not authorized"}}
