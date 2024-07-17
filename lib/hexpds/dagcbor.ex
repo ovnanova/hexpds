@@ -53,4 +53,9 @@ defmodule Hexpds.DagCBOR do
   def decode(cbor) do
     with {:ok, json} <- decode_json(cbor), do: Jason.decode(json)
   end
+
+  def bytes(bytes) do
+    "hexpds_dagcbor_bytes" <> Base.encode16(bytes, case: :lower)
+  end
+
 end

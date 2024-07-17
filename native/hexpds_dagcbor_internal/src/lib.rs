@@ -12,6 +12,7 @@ use serde_json::json;
 use serde_json::Value as JsonValue;
 use std::collections::BTreeMap;
 use std::str::FromStr;
+use hex;
 
 mod atoms {
     rustler::atoms! {
@@ -25,7 +26,7 @@ pub fn json_to_ipld(val: JsonValue) -> Ipld {
     match val {
         JsonValue::Null => Ipld::Null,
         JsonValue::Bool(b) => Ipld::Bool(b),
-        JsonValue::String(s) => Ipld::String(s),
+        JsonValue::String(s) => ipld_bytes_or_string(s),
         JsonValue::Number(v) => {
             if let Some(f) = v.as_f64() {
                 if v.is_i64() {
@@ -50,6 +51,20 @@ pub fn json_to_ipld(val: JsonValue) -> Ipld {
             }));
             Ipld::Map(map)
         }
+    }
+}
+
+pub fn ipld_bytes_or_string(string: String) -> Ipld {
+    if string.starts_with("hexpds_dagcbor_bytes") {
+        let prefix_length = "hexpds_dagcbor_bytes".len();
+        let bytes_string = &string[prefix_length..];
+
+        // Decode bytes from hexadecimal representation
+        let bytes = hex::decode(bytes_string).expect("Failed to decode hexadecimal bytes");
+
+        Ipld::Bytes(bytes)
+    } else {
+        Ipld::String(string)
     }
 }
 
@@ -127,3 +142,4 @@ rustler::init!(
     "Elixir.Hexpds.DagCBOR.Internal",
     [encode_dag_cbor, decode_dag_cbor]
 );
+
