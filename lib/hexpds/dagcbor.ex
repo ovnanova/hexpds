@@ -1,4 +1,5 @@
 defmodule Hexpds.DagCBOR do
+  import Hexpds.Helpers
   defmodule Internal do
     use Rustler, otp_app: :hexpds, crate: "hexpds_dagcbor_internal"
     @spec encode_dag_cbor(binary()) :: {:ok, binary()} | {:error, String.t()}
@@ -32,6 +33,8 @@ defmodule Hexpds.DagCBOR do
   def encode([_ | _] = l) do
     with {:ok, json} <- Jason.encode(l), do: encode(json)
   end
+
+  def! encode(json)
 
   @doc """
   Decodes a CBOR binary into a JSON string.

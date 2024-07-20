@@ -5,7 +5,7 @@ import Config
 
 config :hexpds,
   plc_server: "plc.directory",
-  appview_server: "public.api.bsky.app",
+  appview_server: "api.bsky.app",
   relay_server: "bsky.network",
   # ignore pls for now
   pds_host: "abyss.computer",
