@@ -13,7 +13,7 @@ config :hexpds,
   admin_password: "admin",
   # or Ecto.Adapters.Postgres in production
   ecto_adapter: Ecto.Adapters.SQLite3,
-  ecto_repos: [Hexpds.Database],
+  ecto_repos: [Hexpds.Database, Hexpds.User.Sqlite],
   port:
     (case Mix.env() do
        :prod -> 3999

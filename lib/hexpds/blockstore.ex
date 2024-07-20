@@ -10,6 +10,8 @@ defmodule Hexpds.BlocksTable do
   schema "blocks" do
     field(:block_cid, :string) # A CID
     field(:block_value, :binary) # A Dag-CBOR blob
+
+    timestamps()
   end
 end
 
@@ -27,19 +29,19 @@ defmodule Hexpds.EctoBlockStore do
           block_cid: cid,
           block_value: DagCBOR.encode!(value)
         }
-        |> Hexpds.Database.insert!()
+        |> Hexpds.User.Sqlite.insert!()
       anything_else -> anything_else
     end
   end
 
   def get_block(key) do
-    case Hexpds.Database.get_by(BlocksTable, block_cid: key) do
+    case Hexpds.User.Sqlite.get_by(BlocksTable, block_cid: key) do
       nil -> {:error, :not_found}
       block -> block.block_value
     end
   end
 
   def del_block(key) do
-    Hexpds.Database.delete_all(from(b in BlocksTable, where: b.block_cid == ^key))
+    Hexpds.User.Sqlite.delete_all(from(b in BlocksTable, where: b.block_cid == ^key))
   end
 end
