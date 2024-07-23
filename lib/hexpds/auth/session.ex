@@ -84,10 +84,10 @@ defmodule Hexpds.Auth.Session do
       {:error, reason} ->
         {:error, reason}
 
-      json ->
-        case json["scope"] do
-          "com.atproto.access" -> if find_r_jwt(jwt), do: json, else: {:error, "Invalid token"}
-          "com.atproto.refresh" -> if find_a_jwt(jwt), do: json, else: {:error, "Invalid token"}
+      %{"sub" => sub} = json ->
+        case sub["scope"] do
+          "com.atproto.access" -> if find_a_jwt(jwt), do: json, else: {:error, "Invalid token"}
+          "com.atproto.refresh" -> if find_r_jwt(jwt), do: json, else: {:error, "Invalid token"}
           _ -> {:error, "Invalid scope"}
         end
     end

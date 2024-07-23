@@ -57,3 +57,17 @@ defmodule Hexpds.Repo.Commit do
   def! to_dagcbor(comm)
 
 end
+
+defmodule Hexpds.Repo.CommitBlock do
+
+  # These come from Hexpds.User.Sqlite!!! Not from Hexpds.Database!!! (This whole naming thing will probably need to be moved around later)
+
+  use Ecto.Schema
+
+  schema "commits" do
+    field :seq, :integer
+    field :cid, :string
+
+    timestamps()
+  end
+end

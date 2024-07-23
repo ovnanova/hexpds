@@ -10,11 +10,11 @@ defmodule Hexpds.Http do
   plug(:match)
   plug(:dispatch)
 
-  plug(Plug.Parsers,
-    parsers: [:json],
-    pass: ["text/*"],
-    json_decoder: Jason
-  )
+  # plug(Plug.Parsers,
+  #   parsers: [:json],
+  #   pass: ["text/*"],
+  #   json_decoder: Jason
+  # )
 
   options "/xrpc/:any" do
     conn
@@ -116,7 +116,12 @@ defmodule Hexpds.Http do
     {:ok, body, _} = Plug.Conn.read_body(conn)
 
     body =
-      for {key, val} <- Jason.decode!(body), into: %{}, do: {String.to_atom(key), val}
+      case Jason.decode(body) do
+        {:ok, map} ->
+          for {key, value} <- map, into: %{}, do: {String.to_atom(key), value}
+        {:error, _} ->
+          {:blob, body}
+      end
 
     {statuscode, json_resp} = xrpc_procedure(conn, method, body, get_context(conn))
 
@@ -239,8 +244,6 @@ defmodule Hexpds.Http do
   end
 
   XRPC.query _, "com.atproto.server.describeServer", _, _ do
-    IO.puts("Describing server...")
-
     {200,
      %{
        # These will all change, obviously
@@ -301,10 +304,22 @@ defmodule Hexpds.Http do
     case ctx do
       %{user: %Hexpds.User{} = user, token_type: :access} ->
         Hexpds.User.Preferences.put(user, prefs)
-        {200, XRPC.blank}
+        {200, XRPC.blank()}
 
       _ ->
         {401, %{error: "Unauthorized", message: "Not authorized"}}
+    end
+  end
+
+  XRPC.procedure _, "com.atproto.repo.uploadBlob", {:blob, blob_bytes}, ctx do
+    case ctx do
+      %{user: %Hexpds.User{} = user, token_type: :access} ->
+        blob =
+          Hexpds.Blob.new(blob_bytes, user)
+          |> tap(&Hexpds.Blob.save/1)
+
+        {200, %{cid: Hexpds.Repo.Helpers.cid_string(blob.cid)}}
+      _ -> {401, %{error: "Unauthorized", message: "Not authorized"}}
     end
   end
 end

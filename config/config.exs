@@ -8,12 +8,12 @@ config :hexpds,
   appview_server: "api.bsky.app",
   relay_server: "bsky.network",
   # ignore pls for now
-  pds_host: "abyss.computer",
+  pds_host: "secretly-vast-elf.ngrok-free.app", # For testing
   multicodec_csv_path: "multicodec.csv",
   admin_password: "admin",
   # or Ecto.Adapters.Postgres in production
   ecto_adapter: Ecto.Adapters.SQLite3,
-  ecto_repos: [Hexpds.Database, Hexpds.User.Sqlite],
+  ecto_repos: [Hexpds.Database],
   port:
     (case Mix.env() do
        :prod -> 3999
@@ -27,6 +27,7 @@ config :hexpds,
 config :hexpds, Hexpds.Database,
   # Replace with Postgres URL in production!
   url: "sqlite3:///pds"
+
 
 config :mnesia,
   dir: ~c".mnesia/#{Mix.env()}/#{node()}"

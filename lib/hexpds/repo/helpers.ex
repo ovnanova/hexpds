@@ -21,4 +21,11 @@ defmodule Hexpds.Repo.Helpers do
     end
   end
 
+  def key_depth(key) do
+    :crypto.hash(:sha256, key)
+    |> key_hash_depth()
+  end
+  defp key_hash_depth(bin, depth \\ 0)
+  defp key_hash_depth(<<0::integer-size(2), rest::bitstring>>, depth), do: key_hash_depth(rest, depth + 1)
+  defp key_hash_depth(_no_more_zeroes, depth), do: depth
 end

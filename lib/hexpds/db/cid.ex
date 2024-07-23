@@ -16,5 +16,5 @@ defmodule Ecto.Types.Cid do
     do:
       {:ok,
        term
-       |> CID.encode!(:base32_lower)}
+       |> Hexpds.Repo.Helpers.cid_string}
 end

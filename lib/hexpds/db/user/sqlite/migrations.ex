@@ -44,5 +44,31 @@ defmodule Hexpds.User.Sqlite.Migrations do
     end
   end
 
+  migration MstNodes do
+    # Have probably gotten some of this wrong and may need to change implementation
+    create table(:mst_nodes) do
+      add :cid, :string, primary_key: true, null: false
+      add :left, :string, comment: "CID link, optional: link to sub-tree Node on a lower level and with all keys sorting before keys at this node"
+      add :parent_node_cid, :string
+      add :depth, :int, null: false
+    end
+    create table(:tree_entries) do
+      add :tree_entry_key, :text, primary_key: true, null: false # This is equivalent to record path
+      add :parent_node_cid, :string, null: false
+      add :value, :string, null: false # CID link to the record data (CBOR) for this entry
+      add :right, :string # link to a sub-tree Node at a lower level which has keys sorting after this TreeEntry's key (to the "right"), but before the next TreeEntry's key in this Node (if any)
+    end
+  end
+
+  migration SomeUsefulIndices do
+    # Admittedly I might also be getting this wrong
+    create index(:tree_entries, :parent_node_cid)
+    create index(:mst_nodes, :parent_node_cid)
+    create unique_index(:records, :record_cid)
+    create index(:records, :collection)
+    create unique_index(:tree_entries, :value)
+    create index(:mst_nodes, :depth)
+  end
+
   def all, do: Enum.reverse(@migrations)
 end
