@@ -3,6 +3,7 @@ defmodule Hexpds.Repo.Helpers do
 
   def dagcbor_cid(encoded_dagcbor) do
     :crypto.hash(:sha256, encoded_dagcbor)
+    |> then(fn hash -> {:ok, multihash} = Multihash.encode(:sha2_256, hash); multihash end)
     |> CID.cid!("dag-cbor")
   end
 

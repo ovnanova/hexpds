@@ -2,9 +2,6 @@ defmodule Hexpds.Http do
   @moduledoc """
   The XRPC interface to the PDS, including AppView proxying
   """
-  alias Hexpds.XRPC
-  require XRPC
-
   use Plug.Router
 
   plug(:match)
@@ -45,6 +42,34 @@ defmodule Hexpds.Http do
     send_resp(conn, 200, "Why would a PDS need a favicon?")
   end
 
+  def respond_with(conn, {statuscode, resp_body}) do
+    case resp_body do
+      {:blob, blob} ->
+        conn
+        |> Plug.Conn.put_resp_content_type(blob.mime_type)
+        |> Plug.Conn.send_resp(statuscode, blob.data)
+        |> Plug.Conn.halt()
+        |> IO.inspect()
+
+      {:websock, {module, args, [timeout: timeout]}} ->
+        conn
+        |> WebSockAdapter.upgrade(module, args, timeout: timeout)
+        |> halt()
+
+      _ ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.put_resp_header("access-control-allow-origin", "*")
+        |> Plug.Conn.send_resp(statuscode, Jason.encode!(resp_body))
+    end
+  end
+
+  get "/ws/firehose_test" do
+    conn
+    |> WebSockAdapter.upgrade(Hexpds.Firehose.Websocket, [], timeout: 60_000)
+    |> halt()
+  end
+
   get "/.well-known/atproto-did" do
     {status, resp} =
       case Hexpds.User.get(conn.host) do
@@ -65,12 +90,12 @@ defmodule Hexpds.Http do
 
     context = get_context(conn)
 
-    {statuscode, json_body} =
+    resp =
       try do
         # We can handle the method
         IO.puts("Got query: #{method} #{inspect(params)}")
 
-        xrpc_query(conn, method, params, context)
+        Hexpds.Http.Routes.xrpc_query(conn, method, params, context)
         |> IO.inspect()
       catch
         _, e_from_method ->
@@ -96,20 +121,7 @@ defmodule Hexpds.Http do
           end
       end
 
-    case json_body do
-      {:blob, blob} ->
-        conn
-        |> Plug.Conn.put_resp_content_type(blob.mime_type)
-        |> Plug.Conn.send_resp(200, blob.data)
-        |> Plug.Conn.halt()
-        |> IO.inspect()
-
-      _ ->
-        conn
-        |> Plug.Conn.put_resp_content_type("application/json")
-        |> Plug.Conn.put_resp_header("access-control-allow-origin", "*")
-        |> Plug.Conn.send_resp(statuscode, Jason.encode!(json_body))
-    end
+      respond_with(conn, resp)
   end
 
   post "/xrpc/:method" do
@@ -119,24 +131,14 @@ defmodule Hexpds.Http do
       case Jason.decode(body) do
         {:ok, map} ->
           for {key, value} <- map, into: %{}, do: {String.to_atom(key), value}
+
         {:error, _} ->
           {:blob, body}
       end
 
-    {statuscode, json_resp} = xrpc_procedure(conn, method, body, get_context(conn))
+    resp = Hexpds.Http.Routes.xrpc_procedure(conn, method, body, get_context(conn))
 
-    case json_resp do
-      {:blob, blob} ->
-        conn
-        |> Plug.Conn.put_resp_content_type(blob.mime_type)
-        |> Plug.Conn.send_resp(200, blob.data)
-
-      _ ->
-        conn
-        |> Plug.Conn.put_resp_content_type("application/json")
-        |> Plug.Conn.put_resp_header("access-control-allow-origin", "*")
-        |> Plug.Conn.send_resp(statuscode, Jason.encode!(json_resp))
-    end
+    respond_with(conn, resp)
   end
 
   defp appview_for(%Plug.Conn{req_headers: r_h}) do
@@ -195,131 +197,5 @@ defmodule Hexpds.Http do
     |> Enum.into(%{})
     |> Map.get("authorization")
     |> Hexpds.Auth.Context.parse_header()
-  end
-
-  @spec xrpc_query(Plug.Conn.t(), String.t(), map(), Hexpds.Auth.Context.t()) ::
-          {integer(), map() | {:blob, Hexpds.Blob.t()}}
-
-  XRPC.query _, "app.bsky.actor.getPreferences", %{}, ctx do
-    case ctx do
-      %{user: %Hexpds.User{} = user, token_type: :access} ->
-        {200, %{preferences: user.data["preferences"]}}
-
-      _ ->
-        {401, %{error: "Unauthorized", message: "Not authorized"}}
-    end
-  end
-
-  XRPC.query _, "com.atproto.sync.getBlob", %{did: did, cid: cid}, _ do
-    with %Hexpds.Blob{} = blob <- Hexpds.Blob.get(cid, did) do
-      {200, {:blob, blob}}
-    else
-      _ -> {400, %{error: "InvalidRequest", message: "No such blob"}}
-    end
-  end
-
-  XRPC.query _, "com.atproto.sync.listBlobs", opts, _ do
-    case Hexpds.Xrpc.Query.ListBlobs.list_blobs(
-           opts[:did],
-           opts[:since],
-           String.to_integer(opts[:limit] || 500),
-           Hexpds.CID.decode_cid!(opts[:cursor])
-         ) do
-      %{cids: cids, cursor: next_cursor} ->
-        {200, %{cursor: next_cursor, cids: Enum.map(cids, &to_string/1)}}
-
-      _ ->
-        {400, %{error: "InvalidRequest", message: "Unknown user."}}
-    end
-  end
-
-  XRPC.query _, "com.atproto.server.getSession", %{}, ctx do
-    case ctx do
-      %{user: %Hexpds.User{did: did, handle: handle}, token_type: :access} ->
-        {200, %{handle: handle, did: did}}
-
-      _ ->
-        {401, %{error: "Unauthorized", message: "Not authorized"}}
-    end
-  end
-
-  XRPC.query _, "com.atproto.server.describeServer", _, _ do
-    {200,
-     %{
-       # These will all change, obviously
-       availableUserDomains: ["localhost"],
-       did: "did:web:localhost"
-     }}
-  end
-
-  @spec xrpc_procedure(Plug.Conn.t(), String.t(), map(), Hexpds.Auth.Context.t()) ::
-          {integer(), map() | {:blob, Hexpds.Blob.t()}}
-
-  XRPC.procedure _,
-                 "com.atproto.server.createSession",
-                 %{identifier: username, password: pw},
-                 _ do
-    {200, Hexpds.Auth.Session.new(username, pw)}
-  end
-
-  XRPC.procedure c, "com.atproto.server.refreshSession", _, ctx do
-    case ctx do
-      %{user: %Hexpds.User{}, token_type: :refresh} ->
-        c.req_headers
-        |> Enum.into(%{})
-        |> Map.get("authorization")
-        |> case do
-          "Bearer " <> token ->
-            case Hexpds.Auth.Session.refresh(token) do
-              %{} = session -> {200, session}
-              _ -> {400, %{error: "InvalidToken", message: "Refresh session failed"}}
-            end
-
-          _ ->
-            {400, %{error: "InvalidToken", message: "Refresh session failed"}}
-        end
-
-      _ ->
-        {401, %{error: "Unauthorized", message: "Not authorized"}}
-    end
-  end
-
-  XRPC.procedure conn, "com.atproto.server.deleteSession", _, _ do
-    conn.req_headers
-    |> Enum.into(%{})
-    |> Map.get("authorization")
-    |> case do
-      "Bearer " <> token ->
-        case Hexpds.Auth.Session.delete(token) do
-          :ok -> {200, %{}}
-          _ -> {401, %{error: "InvalidToken", message: "Delete session failed"}}
-        end
-
-      _ ->
-        {401, %{error: "InvalidToken", message: "Delete session failed"}}
-    end
-  end
-
-  XRPC.procedure _, "app.bsky.actor.putPreferences", %{preferences: prefs}, ctx do
-    case ctx do
-      %{user: %Hexpds.User{} = user, token_type: :access} ->
-        Hexpds.User.Preferences.put(user, prefs)
-        {200, XRPC.blank()}
-
-      _ ->
-        {401, %{error: "Unauthorized", message: "Not authorized"}}
-    end
-  end
-
-  XRPC.procedure _, "com.atproto.repo.uploadBlob", {:blob, blob_bytes}, ctx do
-    case ctx do
-      %{user: %Hexpds.User{} = user, token_type: :access} ->
-        blob =
-          Hexpds.Blob.new(blob_bytes, user)
-          |> tap(&Hexpds.Blob.save/1)
-
-        {200, %{cid: Hexpds.Repo.Helpers.cid_string(blob.cid)}}
-      _ -> {401, %{error: "Unauthorized", message: "Not authorized"}}
-    end
   end
 end

@@ -4,7 +4,7 @@ defmodule Hexpds.Application do
   @impl Application
   def start(_type, _args) do
     Hexpds.Database.Mnesia.create_tables()
-
+    :syn.add_node_to_scopes([:firehose])
     Supervisor.start_link(
       [
         {Bandit, plug: Hexpds.Http, scheme: :http, port: Application.get_env(:hexpds, :port)},

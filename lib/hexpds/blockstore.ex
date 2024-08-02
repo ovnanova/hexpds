@@ -17,10 +17,10 @@ end
 
 defmodule Hexpds.EctoBlockStore do
   import Ecto.Query
-  alias Hexpds.DagCBOR
-  alias Hexpds.BlocksTable
-  @behaviour Hexpds.BlockStore
+  alias Hexpds.{BlockStore, DagCBOR, BlocksTable}
+  @behaviour BlockStore
 
+  @impl BlockStore
   def put_block(value) do
     cid = Hexpds.Repo.Helpers.term_to_dagcbor_cid(value)
     case get_block(cid) do
@@ -34,13 +34,15 @@ defmodule Hexpds.EctoBlockStore do
     end
   end
 
+  @impl BlockStore
   def get_block(key) do
     case Hexpds.User.Sqlite.get_by(BlocksTable, block_cid: key) do
       nil -> {:error, :not_found}
-      block -> block.block_value
+      %BlocksTable{} = block -> block
     end
   end
 
+  @impl BlockStore
   def del_block(key) do
     Hexpds.User.Sqlite.delete_all(from(b in BlocksTable, where: b.block_cid == ^key))
   end

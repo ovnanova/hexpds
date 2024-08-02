@@ -22,4 +22,16 @@ defmodule Hexpds.XRPC do
       end
     end
   end
+
+  defmacro if_authed(ctx, token_type \\ :access, do: block) do
+    quote do
+      case unquote(ctx) do
+        %{user: %Hexpds.User{}, token_type: unquote(token_type)} ->
+          unquote(block)
+        _ ->
+          {401, %{error: "Unauthorized", message: "Not authorized"}}
+      end
+    end
+  end
+
 end
