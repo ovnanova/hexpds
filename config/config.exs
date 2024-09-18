@@ -8,7 +8,7 @@ config :hexpds,
   appview_server: "public.api.bsky.app",
   relay_server: "bsky.network",
   # ignore pls for now
-  pds_host: "abyss.computer",
+  pds_host: "kawaii.social",
   multicodec_csv_path: "multicodec.csv",
   admin_password: "admin",
   # or Ecto.Adapters.Postgres in production
