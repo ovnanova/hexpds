@@ -8,7 +8,7 @@ config :hexpds,
   appview_server: "api.bsky.app",
   relay_server: "bsky.network",
   # ignore pls for now
-  pds_host: "secretly-vast-elf.ngrok-free.app", # For testing
+  pds_host: "kawaii.social",
   multicodec_csv_path: "multicodec.csv",
   admin_password: "admin",
   # or Ecto.Adapters.Postgres in production
