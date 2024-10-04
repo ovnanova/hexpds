@@ -1,31 +1,21 @@
 defmodule Hexpds.MST.Util do
   @moduledoc """
-  Utility function module for MST operations
+  Utility functions for MST operations.
   """
 
   alias Hexpds.DagCBOR.Internal
   alias Hexpds.CID
-  alias Hexpds.MST
+  alias Hexpds.MST.Node
   require Logger
 
   @doc """
-  Serializes MST node entries into a CBOR binary with prefix compression
-
-  ## Parameters
-
-    - `entries`: List of MST node entries (`%MST{}` or `%MST.Leaf{}` structs)
-    - `storage`: PID of the storage module
-
-  ## Returns
-
-    - `{:ok, binary}` on success
-    - `{:error, reason}` on failure
+  Serializes MST node entries into a CBOR binary with prefix compression.
   """
-  @spec serialize_node_data([MST.node_entry()], pid()) :: {:ok, binary()} | {:error, term()}
-  def serialize_node_data(entries, storage) do
+  @spec serialize_node_data([Node.t()], pid()) :: {:ok, binary()} | {:error, term()}
+  def serialize_node_data(entries, _storage) do
     keys = Enum.map(entries, fn
-      %MST.Leaf{key: key} -> key
-      %MST{} -> ""  # Subtrees use the common prefix
+      %Node{type: :leaf, key: key} -> key
+      %Node{type: :internal} -> ""
     end)
 
     common_prefix = longest_common_prefix(keys)
@@ -33,182 +23,128 @@ defmodule Hexpds.MST.Util do
 
     serialized_entries =
       Enum.map(entries, fn
-        %MST{} = subtree ->
+        %Node{type: :internal, pointer: pointer} ->
           %{
             "p" => prefix_length,
             "k" => nil,
             "v" => nil,
-            "t" => CID.encode!(subtree.pointer, :base32_lower)  # Assuming `pointer` holds the CID
+            "t" => CID.to_string(pointer)
           }
 
-        %MST.Leaf{key: key, value: %CID{} = value} ->
+        %Node{type: :leaf, key: key, value: %CID{} = value} ->
           suffix = remove_prefix(key, common_prefix)
           %{
             "p" => prefix_length,
             "k" => suffix,
-            "v" => CID.encode!(value, :base32_lower),
+            "v" => CID.to_string(value),
             "t" => nil
           }
       end)
 
-    # Construct the data map
     data_map = %{
       "prefix" => common_prefix,
       "entries" => serialized_entries
     }
 
-    # Encode the data map to JSON string
-    case Jason.encode(data_map) do
-      {:ok, json_string} ->
-        # Call the Rust NIF to encode JSON to DAG-CBOR
-        case Internal.encode_dag_cbor(json_string) do
-          {:ok, cbor_binary} ->
-            {:ok, cbor_binary}
-
-          {:error, reason} ->
-            {:error, "Failed to encode DAG-CBOR via NIF: #{reason}"}
-        end
-
-      {:error, reason} ->
-        {:error, "Failed to encode data map to JSON: #{reason}"}
+    with {:ok, json_string} <- Jason.encode(data_map),
+         {:ok, cbor_binary} <- Internal.encode_dag_cbor(json_string) do
+      {:ok, cbor_binary}
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
   @doc """
-  Deserializes a CBOR binary into MST node entries with prefix decompression
-
-  ## Parameters
-
-    - `cbor`: Binary data in DAG-CBOR format
-    - `storage`: PID of the storage module
-    - `mst`: The current MST node (used for context)
-
-  ## Returns
-
-    - `{:ok, entries}` on success
-    - `{:error, reason}` on failure
+  Deserializes a CBOR binary into MST node entries with prefix decompression.
   """
-  @spec deserialize_node_data(binary(), pid(), MST.t()) :: {:ok, [MST.node_entry()]} | {:error, term()}
-  def deserialize_node_data(cbor, storage, mst) do
-    # Call the Rust NIF to decode DAG-CBOR to JSON string
-    case Internal.decode_dag_cbor(cbor) do
-      {:ok, json_string} ->
-        # Parse the JSON string to a map
-        case Jason.decode(json_string) do
-          {:ok, %{"prefix" => common_prefix, "entries" => serialized_entries}} ->
-            # Reconstruct entries
-            reconstructed_entries =
-              Enum.map(serialized_entries, fn entry ->
-                cond do
-                  Map.has_key?(entry, "t") and is_binary(entry["t"]) ->
-                    # Subtree entry
-                    case CID.decode(entry["t"]) do
-                      {:ok, cid_struct} ->
-                        # Load the subtree MST node
-                        case MST.load(storage, cid_struct) do
-                          %MST{} = subtree ->
-                            subtree
+  @spec deserialize_node_data(binary(), pid()) :: {:ok, [Node.t()]} | {:error, term()}
+  def deserialize_node_data(cbor, _storage) do
+    with {:ok, json_string} <- Internal.decode_dag_cbor(cbor),
+         {:ok, %{"prefix" => common_prefix, "entries" => serialized_entries}} <- Jason.decode(json_string) do
+      reconstructed_entries =
+        Enum.map(serialized_entries, fn entry ->
+          cond do
+            is_binary(entry["t"]) ->
+              with {:ok, cid_struct} <- CID.from_string(entry["t"]) do
+                %Node{type: :internal, pointer: cid_struct}
+              else
+                {:error, reason} ->
+                  Logger.error("Failed to decode CID: #{reason}")
+                  nil
+              end
 
-                          _ ->
-                            Logger.error("Failed to load subtree with CID: #{entry["t"]}")
-                            nil
-                        end
+            is_binary(entry["k"]) and is_binary(entry["v"]) ->
+              full_key = common_prefix <> entry["k"]
+              with {:ok, value_cid} <- CID.from_string(entry["v"]) do
+                %Node{type: :leaf, key: full_key, value: value_cid}
+              else
+                {:error, reason} ->
+                  Logger.error("Failed to decode value CID: #{reason}")
+                  nil
+              end
 
-                      {:error, reason} ->
-                        Logger.error("Failed to decode CID from string: #{entry["t"]}, reason: #{reason}")
-                        nil
-                    end
+            true ->
+              Logger.error("Invalid entry format: #{inspect(entry)}")
+              nil
+          end
+        end)
+        |> Enum.reject(&is_nil/1)
 
-                  Map.has_key?(entry, "k") and Map.has_key?(entry, "v") ->
-                    # Leaf entry
-                    full_key = common_prefix <> entry["k"]
-
-                    case CID.decode(entry["v"]) do
-                      {:ok, value_cid} ->
-                        %MST.Leaf{key: full_key, value: value_cid}
-
-                      {:error, reason} ->
-                        Logger.error("Failed to decode value CID for key #{full_key}: #{reason}")
-                        nil
-                    end
-
-                  true ->
-                    Logger.error("Invalid entry format: #{inspect(entry)}")
-                    nil
-                end
-              end)
-              |> Enum.reject(&is_nil/1)
-
-            {:ok, reconstructed_entries}
-
-          {:error, reason} ->
-            {:error, "Failed to parse JSON string: #{reason}"}
-
-          _ ->
-            {:error, "Malformed JSON data from DAG-CBOR decoding"}
-        end
-
-      {:error, reason} ->
-        {:error, "Failed to decode DAG-CBOR via NIF: #{reason}"}
+      {:ok, reconstructed_entries}
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
   @doc """
-  Determines the longest common prefix among a list of strings
+  Determines the appropriate layer based on the entries.
+  """
+  @spec layer_for_entries([Node.t()]) :: {:ok, non_neg_integer()} | {:error, term()}
+  def layer_for_entries(entries) when is_list(entries) do
+    case entries do
+      [] -> {:error, :no_entries}
+      _ ->
+        leading_zeros_list =
+          entries
+          |> Enum.map(fn
+            %Node{type: :leaf, key: key} -> key
+            %Node{type: :internal, pointer: pointer} -> CID.to_string(pointer)
+          end)
+          |> Enum.map(&leading_zeros_on_hash/1)
+          |> Enum.map(fn
+            {:ok, count} -> count
+            {:error, _} -> 0
+          end)
 
-  ## Parameters
+        {:ok, Enum.min(leading_zeros_list)}
+    end
+  end
 
-    - `keys`: List of strings
-
-  ## Returns
-
-    - `String.t()`: The longest common prefix
+  @doc """
+  Determines the longest common prefix among a list of strings.
   """
   @spec longest_common_prefix([String.t()]) :: String.t()
   def longest_common_prefix([]), do: ""
 
   def longest_common_prefix([first | rest]) do
-    Enum.reduce(rest, first, fn str, acc ->
-      common_prefix(acc, str)
-    end)
+    Enum.reduce(rest, first, &common_prefix/2)
   end
 
   @doc """
-  Finds the common prefix between two strings
-
-  ## Parameters
-
-    - `str1`: First string
-    - `str2`: Second string
-
-  ## Returns
-
-    - `String.t()`: The common prefix
+  Finds the common prefix between two strings.
   """
   @spec common_prefix(String.t(), String.t()) :: String.t()
   def common_prefix(str1, str2) do
-    do_common_prefix(String.graphemes(str1), String.graphemes(str2), [])
-    |> Enum.reverse()
+    str1
+    |> String.graphemes()
+    |> Enum.zip(String.graphemes(str2))
+    |> Enum.take_while(fn {c1, c2} -> c1 == c2 end)
+    |> Enum.map(&elem(&1, 0))
     |> Enum.join()
   end
 
-  defp do_common_prefix([h1 | t1], [h2 | t2], acc) when h1 == h2 do
-    do_common_prefix(t1, t2, [h1 | acc])
-  end
-
-  defp do_common_prefix(_, _, acc), do: acc
-
   @doc """
-  Removes the common prefix from a string
-
-  ## Parameters
-
-    - `str`: The original string
-    - `prefix`: The prefix to remove
-
-  ## Returns
-
-    - `String.t()`: The string after removing the prefix
+  Removes the common prefix from a string.
   """
   @spec remove_prefix(String.t(), String.t()) :: String.t()
   def remove_prefix(str, prefix) do
@@ -216,83 +152,40 @@ defmodule Hexpds.MST.Util do
   end
 
   @doc """
-  Ensures that the provided MST key is valid
-
-  ## Parameters
-
-    - `key`: The key to validate
-
-  ## Returns
-
-    - `:ok` if the key is valid
-    - `{:error, reason}` if the key is invalid
+  Ensures that the provided MST key is valid.
   """
   @spec ensure_valid_mst_key(String.t()) :: :ok | {:error, String.t()}
-  def ensure_valid_mst_key(key) when is_binary(key) and byte_size(key) > 0 do
-    # Example validation: keys must start with "key" followed by digits
-    if Regex.match?(~r/^key\d+$/, key) do
-      :ok
-    else
-      {:error, "Invalid MST key format: #{key}. Keys must match the pattern /^key\\d+$/."}
-    end
-  end
-
-  def ensure_valid_mst_key(_key), do: {:error, "MST key must be a non-empty string."}
+  def ensure_valid_mst_key(key) when is_binary(key) and byte_size(key) > 0, do: :ok
+  def ensure_valid_mst_key(_), do: {:error, "MST key must be a non-empty string."}
 
   @doc """
-  Calculates the number of leading zeros in the SHA-256 hash of the given key
-
-  ## Parameters
-
-    - `key`: The key to hash
-
-  ## Returns
-
-    - `{:ok, count}` where `count` is the number of leading zero bits
-    - `{:error, reason}` if hashing fails
+  Calculates the number of leading zeros in the SHA-256 hash of the given key.
   """
   @spec leading_zeros_on_hash(String.t()) :: {:ok, non_neg_integer()} | {:error, String.t()}
   def leading_zeros_on_hash(key) when is_binary(key) do
-    # Compute SHA-256 hash
-    hash = :crypto.hash(:sha256, key)
-
-    # Convert hash to bitstring
-    bitstring = :binary.bin_to_list(hash)
-               |> Enum.map(&Integer.to_string(&1, 2) |> String.pad_leading(8, "0"))
-               |> Enum.join()
-
-    # Count leading zeros
-    leading_zeros = String.length(bitstring) - String.length(String.trim_leading(bitstring, "0"))
-
-    {:ok, leading_zeros}
-  rescue
-    e ->
-      {:error, "Failed to compute leading zeros: #{inspect(e)}"}
+    try do
+      <<hash::256>> = :crypto.hash(:sha256, key)
+      leading_zeros = count_leading_zeros(hash)
+      {:ok, leading_zeros}
+    rescue
+      e ->
+        {:error, "Failed to compute leading zeros: #{inspect(e)}"}
+    end
   end
 
-  def leading_zeros_on_hash(_key), do: {:error, "Key must be a binary (string)."}
+  defp count_leading_zeros(<<0::1, rest::bitstring>>), do: 1 + count_leading_zeros(rest)
+  defp count_leading_zeros(_), do: 0
 
   @doc """
-  Generates a CID for the given entries
-
-  ## Parameters
-
-    - `entries`: List of MST node entries
-    - `storage`: PID of the storage module
-
-  ## Returns
-
-    - `{:ok, CID.t()}` on success
-    - `{:error, reason}` on failure
+  Generates a CID for the given entries.
   """
-  @spec cid_for_entries([MST.node_entry()], pid()) :: {:ok, CID.t()} | {:error, term()}
-  def cid_for_entries(entries, storage) do
-    with {:ok, serialized} <- serialize_node_data(entries, storage),
-         {:ok, cid} <- CID.cid(serialized, "dag-cbor", 1) do
+  @spec cid_for_entries([Node.t()], pid()) :: {:ok, CID.t()} | {:error, term()}
+  def cid_for_entries(entries, _storage) do
+    with {:ok, serialized} <- serialize_node_data(entries, nil),
+         {:ok, cid} <- CID.create_cid(:sha256, serialized) do
       {:ok, cid}
     else
       {:error, reason} -> {:error, reason}
-      _ -> {:error, "Failed to generate CID for entries"}
     end
   end
 end

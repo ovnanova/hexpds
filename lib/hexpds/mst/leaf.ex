@@ -3,34 +3,36 @@ defmodule Hexpds.MST.Leaf do
   Represents a leaf node in the MST
   """
 
+  alias Hexpds.MST.Node
   alias Hexpds.CID
 
-  defstruct [:key, :value]
-
-  @type t :: %__MODULE__{
+  @type t :: %Node{
+          type: :leaf,
           key: String.t(),
-          value: CID.t()
+          value: CID.t(),
+          pointer: nil
         }
 
   @doc """
-  Checks if the given entry is a leaf
-  """
-  @spec is_leaf(t()) :: true
-  def is_leaf(_leaf), do: true
+  Creates a new leaf node.
 
-  @doc """
-  Checks if the given entry is a tree
-  """
-  @spec is_tree(t()) :: false
-  def is_tree(_leaf), do: false
+  ## Parameters
 
-  @doc """
-  Compares two leaf nodes for equality
+    - `key`: The key for the leaf.
+    - `value`: The CID of the value.
+
+  ## Examples
+
+      iex> Hexpds.MST.Leaf.new("key1", %CID{})
+      %Hexpds.MST.Node{type: :leaf, key: "key1", value: %CID{}, pointer: nil}
   """
-  @spec equals(t(), t()) :: boolean()
-  def equals(%__MODULE__{key: key1, value: value1}, %__MODULE__{key: key2, value: value2}) do
-    key1 == key2 and value1.multihash == value2.multihash
+  @spec new(String.t(), CID.t()) :: t()
+  def new(key, %CID{} = value) when is_binary(key) do
+    %Node{
+      type: :leaf,
+      key: key,
+      value: value,
+      pointer: nil
+    }
   end
-
-  def equals(_, _), do: false
 end

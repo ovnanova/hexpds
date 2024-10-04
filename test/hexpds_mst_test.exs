@@ -71,7 +71,7 @@ defmodule Hexpds.MSTTest do
     {:ok, serialized} = MST.Util.serialize_node_data(final_mst.entries, storage)
 
     # Deserialize into a new MST
-    {:ok, deserialized_entries} = MST.Util.deserialize_node_data(serialized, storage, final_mst)
+    {:ok, deserialized_entries} = MST.Util.deserialize_node_data(serialized, storage)
     {:ok, deserialized_mst} = MST.new_tree(final_mst, deserialized_entries)
 
     # Verify that all entries are present

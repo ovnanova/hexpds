@@ -4,10 +4,9 @@ defmodule Hexpds.MST do
   """
 
   alias Hexpds.CID
-  alias Hexpds.DagCBOR.Internal
   alias Hexpds.MST.Storage
   alias Hexpds.MST.Util
-  alias Hexpds.MST.Leaf
+  alias Hexpds.MST.Node
 
   @max_entries 32  # Tune this
 
@@ -112,9 +111,9 @@ defmodule Hexpds.MST do
   end
 
   def get_entries(%__MODULE__{pointer: %CID{} = cid, storage: storage} = mst) do
-    with {:ok, data} <- Storage.read_obj(cid),
-         {:ok, entries} <- Util.deserialize_node_data(data, storage, mst) do
-      {:ok, entries}
+    with {:ok, data} <- Storage.read_obj(storage, cid),
+     {:ok, entries} <- Util.deserialize_node_data(data, storage) do
+    {:ok, entries}
     else
       {:error, reason} -> {:error, reason}
       _ -> {:error, "No entries or CID provided"}
@@ -159,10 +158,9 @@ defmodule Hexpds.MST do
   end
 
   def get_pointer(%__MODULE__{entries: entries, storage: storage} = mst) do
-    with {:ok, serialized_entries} <- Util.serialize_node_data(entries, storage),
-         {:ok, new_cid} <- CID.cid(serialized_entries, "dag-cbor", 1),
-         :ok <- Storage.put_block(storage, new_cid, serialized_entries) do
-      {:ok, new_cid}
+    with {:ok, new_cid} <- CID.create_cid(:sha2_256, entries, "dag-cbor"),
+     :ok <- Storage.put_block(storage, new_cid, entries) do
+    {:ok, new_cid}
     else
       {:error, reason} -> {:error, reason}
       _ -> {:error, "Failed to get pointer"}
@@ -344,18 +342,18 @@ defmodule Hexpds.MST do
   # Private Helper Functions
 
   defp create_leaf(key, %CID{} = value) do
-    {:ok, %Leaf{key: key, value: value}}
+    {:ok, Hexpds.MST.Leaf.new(key, value)}
   end
 
-  defp insert_entry(%__MODULE__{entries: entries, layer: layer} = mst, %Leaf{} = new_leaf, key_zeros, layer) do
+  defp insert_entry(%__MODULE__{entries: entries, layer: layer} = mst, %Node{type: :leaf} = new_leaf, key_zeros, layer) do
     # Find the index to insert the new leaf to keep entries sorted
     index = find_gt_or_equal_leaf_index(mst, new_leaf.key)
 
     case Enum.at(entries, index) do
-      %Leaf{key: existing_key} when existing_key == new_leaf.key ->
+      %Node{type: :leaf, key: existing_key} when existing_key == new_leaf.key ->
         {:error, "There is already a value at key: #{new_leaf.key}"}
 
-      %Leaf{} ->
+      %Node{type: :leaf} ->
         updated_entries = List.insert_at(entries, index, new_leaf)
 
         if length(updated_entries) > @max_entries do
@@ -374,7 +372,7 @@ defmodule Hexpds.MST do
           new_tree(mst, updated_entries)
         end
 
-      %__MODULE__{} ->
+      %Node{type: :internal} ->
         # Handle subtree insertion if necessary
         {:error, "Subtree insertion not implemented yet"}
 
@@ -386,6 +384,7 @@ defmodule Hexpds.MST do
   defp insert_entry(_mst, _entry, _key_zeros, _layer) do
     {:error, "Incompatible layer for insertion"}
   end
+
 
   defp get_layer(%__MODULE__{layer: layer}) when not is_nil(layer), do: {:ok, layer}
 
@@ -403,7 +402,7 @@ defmodule Hexpds.MST do
     end
   end
 
-  defp extract_value(%Leaf{key: key, value: value}, search_key) when key == search_key do
+  defp extract_value(%Node{type: :leaf, key: key, value: value}, search_key) when key == search_key do
     {:ok, value}
   end
 
@@ -413,8 +412,8 @@ defmodule Hexpds.MST do
 
   defp extract_value(_, _), do: {:error, "Invalid entry type"}
 
-  defp update_entry(mst, %Leaf{key: key}, key, %CID{} = new_value) do
-    new_leaf = %Leaf{key: key, value: new_value}
+  defp update_entry(mst, %Node{type: :leaf, key: key}, key, %CID{} = new_value) do
+    new_leaf = %Node{type: :leaf, key: key, value: new_value, pointer: nil}
     {:ok, updated_entries} = replace_entry(mst, key, new_leaf)
     {:ok, new_tree(mst, updated_entries)}
   end
@@ -424,7 +423,7 @@ defmodule Hexpds.MST do
   defp replace_entry(%__MODULE__{entries: entries} = mst, key, new_leaf) do
     updated_entries =
       Enum.map(entries, fn
-        %Leaf{key: ^key} -> new_leaf
+        %Node{type: :leaf, key: ^key} -> new_leaf
         other -> other
       end)
 
@@ -443,9 +442,9 @@ defmodule Hexpds.MST do
     end
   end
 
-  defp remove_entry(%__MODULE__{entries: entries} = mst, %Leaf{key: key}, key) do
+  defp remove_entry(%__MODULE__{entries: entries} = mst, %Node{type: :leaf, key: key}, key) do
     updated_entries = Enum.reject(entries, fn
-      %Leaf{key: ^key} -> true
+      %Node{type: :leaf, key: ^key} -> true
       _ -> false
     end)
 
@@ -484,7 +483,7 @@ defmodule Hexpds.MST do
 
   defp traverse_entries([], acc, _after_key), do: Enum.reverse(acc)
 
-  defp traverse_entries([%Leaf{} = leaf | rest], acc, after_key) do
+  defp traverse_entries([%Node{type: :leaf} = leaf | rest], acc, after_key) do
     if after_key == nil or leaf.key > after_key do
       traverse_entries(rest, [leaf | acc], after_key)
     else
@@ -516,14 +515,24 @@ defmodule Hexpds.MST do
     end
   end
 
-  defp write_node(mst, car) do
-    with {:ok, serialized_entries} <- Util.serialize_node_data(mst.entries, mst.storage),
-         {:ok, cid} <- CID.cid(serialized_entries, "dag-cbor", 1),
-         :ok <- Hexpds.Car.Writer.put(car, cid, serialized_entries) do
-      {:ok, :written}
+  def write_node(%__MODULE__{entries: entries, storage: storage} = mst, car) do
+  # First, write child nodes
+  Enum.each(entries, fn
+    %__MODULE__{} = subtree ->
+      write_node(subtree, car)
+    %Node{type: :internal, pointer: pointer} ->
+      subtree = load(storage, pointer)
+      write_node(subtree, car)
+    _ -> :ok
+  end)
+
+    # Then, write the current node
+    with {:ok, serialized_entries} <- Util.serialize_node_data(entries, storage),
+        {:ok, cid} <- CID.create_cid(:sha2_256, serialized_entries, "dag-cbor"),
+        :ok <- Hexpds.Car.Writer.put(car, cid, serialized_entries) do
+      :ok
     else
       {:error, reason} -> {:error, reason}
-      _ -> {:error, "Failed to write node to CAR stream"}
     end
   end
 
@@ -531,7 +540,7 @@ defmodule Hexpds.MST do
     with {:ok, entries} <- get_entries(mst) do
       index =
         Enum.find_index(entries, fn
-          %Leaf{key: leaf_key} -> leaf_key >= key
+          %Node{type: :leaf, key: leaf_key} -> leaf_key >= key
           _ -> false
         end)
 
@@ -563,12 +572,12 @@ defmodule Hexpds.MST do
     end
   end
 
-  defp get_entry_key(%Leaf{key: key}), do: key
-  defp get_entry_key(%__MODULE__{pointer: %CID{} = _cid}), do: ""
+  defp get_entry_key(%Node{type: :leaf, key: key}), do: key
+  defp get_entry_key(%Node{type: :internal, pointer: _pointer}), do: ""
 
   defp create_subtree(entries, storage) do
     # Create a new MST node with the given entries
-    with {:ok, subtree} <- new_tree(storage, entries),
+    with {:ok, subtree} <- new_tree(mst_from_storage(storage), entries),
          {:ok, subtree_cid} <- get_pointer(subtree),
          {:ok, serialized_entries} <- Util.serialize_node_data(entries, storage),
          :ok <- Storage.put_block(storage, subtree_cid, serialized_entries) do
@@ -577,5 +586,10 @@ defmodule Hexpds.MST do
       {:error, reason} -> {:error, reason}
       _ -> {:error, "Failed to create subtree"}
     end
+  end
+
+  defp mst_from_storage(storage) do
+    # Helper function to create an MST instance from storage PID
+    %__MODULE__{storage: storage}
   end
 end
