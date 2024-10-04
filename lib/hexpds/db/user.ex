@@ -11,7 +11,7 @@ defmodule Hexpds.User do
     field(:did, :string)
     field(:handle, :string)
     field(:password_hash, :string)
-    field(:signing_key, Ecto.Type.ErlangTerm)
+    field(:signing_key, Ecto.Type.ErlangTerm) # Why store as erlangterms? So that the type of key is automatically encoded with the key
     field(:rotation_key, Ecto.Type.ErlangTerm)
     field(:data, :map)
   end
@@ -68,5 +68,16 @@ defmodule Hexpds.User do
       data: %{"preferences" => %{}}
     }
     |> tap(&Hexpds.Database.insert/1)
+    |> tap(&setup_repo_for/1)
+  end
+
+  def setup_repo_for(%__MODULE__{did: did} = u) do
+    File.mkdir_p!("./repos/#{did}")
+    Hexpds.User.Sqlite.exec(u,
+      fn ->
+        Hexpds.User.Sqlite.Migrations.all()
+        |> Hexpds.User.Sqlite.migrate()
+      end
+    )
   end
 end

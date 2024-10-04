@@ -42,6 +42,8 @@ defmodule Hexpds.MixProject do
       {:ecto_sqlite3, "~> 0.15"},
       {:matcha, "~> 0.1.10"},
       {:witchcraft, "~> 1.0.4"},
+      {:websock_adapter, "~> 0.5.6"}, # Websockets
+      {:syn, "~> 3.3.0"},
       # type checking
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       # for linting

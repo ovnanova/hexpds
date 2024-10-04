@@ -15,7 +15,7 @@ defmodule Hexpds.Xrpc.Query.ListBlobs do
   end
 
   def list_blobs(did, tid \\ nil, limit \\ nil, cursor \\ nil) do
-    query = ecto_query_for(did, tid || "#{Hexpds.Tid.empty()}")
+    query = ecto_query_for(did, tid || "#{Hexpds.Tid.empty()}") # Note that we just assume the Repo rev to be correct here
 
     cids =
       if cursor do

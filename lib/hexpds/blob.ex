@@ -65,7 +65,7 @@ defmodule Hexpds.Blob do
   though SQL is fast enough that it doesn't really matter.
 
   (This is not part of the ATP spec, just a weird
-  hack I added)
+  hack I added) -- sj
   """
   def hash(did, "bafkr" <> _ = cid) do
     hash(did, CID.decode_cid!(cid))

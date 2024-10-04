@@ -1,53 +1,49 @@
 defmodule Hexpds.BlockStore do
-  @callback put_block(key :: binary(), value :: binary()) :: :ok | {:error, term()}
+  @callback put_block(value :: binary()) :: :ok | {:error, term()}
   @callback get_block(key :: binary()) :: {:ok, binary()} | {:error, term()}
   @callback del_block(key :: binary()) :: :ok | {:error, term()}
 end
 
-defmodule BlocksTable do
+defmodule Hexpds.BlocksTable do
   use Ecto.Schema
 
   schema "blocks" do
-    field(:key, :string)
-    field(:value, :binary)
+    field(:block_cid, :string) # A CID
+    field(:block_value, :binary) # A Dag-CBOR blob
+
+    timestamps()
   end
 end
 
 defmodule Hexpds.EctoBlockStore do
   import Ecto.Query
-  @behaviour Hexpds.BlockStore
+  alias Hexpds.{BlockStore, DagCBOR, BlocksTable}
+  @behaviour BlockStore
 
-  def init(_type, config) do
-    {:ok, Keyword.put(config, :database, :memory)}
-  end
-
-  def put_block(key, value) do
-    case Hexpds.Database.get_by(BlocksTable, key: key) do
-      nil ->
-        case Hexpds.Database.insert!(%BlocksTable{key: key, value: value}) do
-          {:ok, _} -> :ok
-          {:error, _} -> {:error, :insert_failed}
-        end
-
-      {:ok, res} when res == value ->
-        :ok
-
-      {:ok, _} ->
-        {:error, :different_value}
-
-      {:error, _} ->
-        {:error, :get_failed}
+  @impl BlockStore
+  def put_block(value) do
+    cid = Hexpds.Repo.Helpers.term_to_dagcbor_cid(value)
+    case get_block(cid) do
+      {:error, :not_found} ->
+        %BlocksTable{
+          block_cid: cid,
+          block_value: DagCBOR.encode!(value)
+        }
+        |> Hexpds.User.Sqlite.insert!()
+      anything_else -> anything_else
     end
   end
 
+  @impl BlockStore
   def get_block(key) do
-    case Hexpds.Database.get_by(BlocksTable, key: key) do
+    case Hexpds.User.Sqlite.get_by(BlocksTable, block_cid: key) do
       nil -> {:error, :not_found}
-      block -> {:ok, block.value}
+      %BlocksTable{} = block -> block
     end
   end
 
+  @impl BlockStore
   def del_block(key) do
-    Hexpds.Database.delete_all(from(b in BlocksTable, where: b.key == ^key))
+    Hexpds.User.Sqlite.delete_all(from(b in BlocksTable, where: b.block_cid == ^key))
   end
 end
