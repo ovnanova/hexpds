@@ -299,6 +299,7 @@ defmodule Hexpds.CID do
     do_encode(cid, encoding_id)
   end
 
+  @spec encode!(Hexpds.CID.t()) :: binary()
   @doc """
   Encodes a CID as a Multibase encoded string.
 
@@ -364,6 +365,7 @@ defmodule Hexpds.CID do
     do_encode_buffer(cid)
   end
 
+  @spec encode_buffer!(Hexpds.CID.t()) :: binary()
   @doc """
   Encodes a CID as a raw buffer to be encoded with Multibase.
 
@@ -772,7 +774,65 @@ defmodule Hexpds.CID do
     end
   end
 
+  @doc """
+  Creates a new CID by hashing the given data using the specified hash algorithm and codec.
+
+  ## Parameters
+
+  - `hash_algorithm`: The hash algorithm to use (e.g., `:sha2_256`).
+  - `data`: The binary data to hash.
+  - `codec`: The codec to use for the CID (e.g., `"dag-cbor"`).
+
+  ## Returns
+
+  - `{:ok, CID.t()}` on success.
+  - `{:error, reason}` on failure.
+  """
+  @spec create_cid(atom(), binary(), Multicodec.multi_codec()) :: {:ok, t()} | {:error, term()}
+  def create_cid(hash_algorithm, data, codec \\ @v0_codec) when is_atom(hash_algorithm) and is_binary(data) do
+    with {:ok, multihash} <- Multihash.encode(hash_algorithm, data),
+        {:ok, cid} <- cid(multihash, codec, @current_version) do
+      {:ok, cid}
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
+  Alias for `create_cid/3`.
+  """
+  @spec new(atom(), binary()) :: {:ok, t()} | {:error, term()}
+  def new(hash_algorithm, data) do
+    create_cid(hash_algorithm, data)
+  end
+
+
   defimpl String.Chars, for: CID do
     def to_string(cid), do: CID.encode!(cid, :base32_lower)
+  end
+
+  @spec to_string(CID.t()) :: String.t()
+  def to_string(%CID{} = cid) do
+    encode!(cid, :base32_lower)
+  end
+
+  @doc """
+  Parses a CID string into a CID struct.
+
+  Returns `{:ok, CID.t()}` on success, or `{:error, reason}` on failure.
+  """
+  @spec from_string(String.t()) :: {:ok, t()} | {:error, term()}
+  def from_string(cid_string) when is_binary(cid_string) do
+    decode_cid(cid_string)
+  end
+
+  @doc """
+  Parses a CID string into a CID struct.
+
+  Raises an exception if the CID string is invalid.
+  """
+  @spec from_string!(String.t()) :: t()
+  def from_string!(cid_string) do
+    decode_cid!(cid_string)
   end
 end
